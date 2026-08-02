@@ -111,12 +111,15 @@ class MainSeeder extends Seeder
             ]);
         }
 
-        // 8. Generate Purchases (approx 50)
+        // 8. Generate Purchases (approx 150)
         $lots = []; // Keep track of open lots for sales
-        $startDate = Carbon::now()->subMonths(3);
 
-        for ($i = 1; $i <= 50; $i++) {
-            $date = $startDate->copy()->addDays(rand(1, 40));
+        for ($i = 1; $i <= 300; $i++) {
+            if ($i % 10 === 0) {
+                $date = Carbon::today();
+            } else {
+                $date = Carbon::today()->subDays(rand(1, 100)); // Spread over last 100 days
+            }
             $party = $faker->randomElement($parties);
             $broker = $faker->randomElement($brokers);
             $grain = $faker->randomElement($grains);
@@ -241,11 +244,10 @@ class MainSeeder extends Seeder
             LedgerEntry::recalculateForParty($company->id, $party->id);
         }
 
-        // 9. Generate Sales (approx 100)
+        // 9. Generate Sales (approx 300)
         // With special focus on Cash Discounts
-        $saleDate = Carbon::now()->subMonths(1);
 
-        for ($i = 1; $i <= 100; $i++) {
+        for ($i = 1; $i <= 300; $i++) {
             // Find a random open lot
             $openLots = array_filter($lots, fn($l) => $l->remaining_quantity > 0);
             if (empty($openLots)) break;
@@ -253,7 +255,11 @@ class MainSeeder extends Seeder
             $lotIndex = array_rand($openLots);
             $lot = $openLots[$lotIndex];
             
-            $date = $saleDate->copy()->addDays(rand(1, 30));
+            if ($i % 10 === 0) {
+                $date = Carbon::today();
+            } else {
+                $date = Carbon::today()->subDays(rand(0, 100)); // Spread over last 100 days
+            }
             $party = $faker->randomElement($parties);
             $broker = $faker->randomElement($brokers);
             
