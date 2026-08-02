@@ -2,6 +2,16 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\LandingController;
+
+// Public Landing Routes
+Route::get('/', [LandingController::class, 'home'])->name('landing.home');
+Route::get('/features', [LandingController::class, 'features'])->name('landing.features');
+Route::get('/pricing', [LandingController::class, 'pricing'])->name('landing.pricing');
+Route::get('/about', [LandingController::class, 'about'])->name('landing.about');
+Route::get('/contact', [LandingController::class, 'contact'])->name('landing.contact');
+Route::post('/contact', [LandingController::class, 'submitContact'])->name('landing.contact.submit');
+Route::get('/legal', [LandingController::class, 'legal'])->name('landing.legal');
 
 // Authentication Routes
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -18,13 +28,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 
-    // Redirect / to the correct dashboard based on role
-    Route::get('/', function () {
+    // Redirect dashboard to the correct dashboard based on role
+    Route::get('/dashboard', function () {
         if (auth()->user()->role === 'super_admin') {
             return redirect()->route('superadmin.dashboard');
         }
         return redirect()->route('business.dashboard');
-    });
+    })->name('dashboard');
 
     // Stop impersonating route (accessible globally when authenticated)
     Route::get('/stop-impersonating', [\App\Http\Controllers\SuperAdmin\ImpersonateController::class, 'stop'])->name('impersonate.stop');
