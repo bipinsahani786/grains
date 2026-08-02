@@ -599,10 +599,30 @@ p {
         flex-direction: column;
         padding: 20px;
         box-shadow: var(--shadow-md);
+        z-index: 9999;
     }
     .nav-links.active { display: flex; }
+    .nav-links a {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-light);
+        width: 100%;
+        text-align: left;
+    }
+    .nav-links a:last-child {
+        border-bottom: none;
+    }
+    .nav-links a.btn {
+        margin-top: 15px;
+        text-align: center;
+        padding: 14px;
+        width: 100%;
+        display: block;
+        box-sizing: border-box;
+    }
     .mobile-menu-btn { display: block; }
     .hero h1 { font-size: 40px; }
+    .hero-buttons { flex-direction: column; }
+    .hero-buttons .btn { width: 100%; margin-bottom: 10px; box-sizing: border-box; }
     .stats-grid { grid-template-columns: 1fr; }
     .footer-grid { grid-template-columns: 1fr; }
 }
