@@ -158,7 +158,6 @@
         @media print {
             body { margin: 0; padding: 0; }
             .no-print { display: none !important; }
-            .bill-container { border: none; }
         }
     </style>
 </head>
@@ -264,16 +263,10 @@
                 
                 @if(isset($purchase->payments) && $purchase->payments->count() > 0)
                     <tr style="background-color: #f9f9f9;">
-                        <td colspan="4" class="right" style="font-size:12px; padding: 2px 5px;">
+                        <td colspan="5" class="right" style="font-size:12px; padding: 4px 5px;">
                             <strong>Payments Received:</strong>
                             @foreach($purchase->payments as $payment)
-                                <br>{{ ucfirst($payment->mode) }}: 
-                            @endforeach
-                        </td>
-                        <td class="right" style="font-size:12px; padding: 2px 5px;">
-                            <br>
-                            @foreach($purchase->payments as $payment)
-                                {{ number_format($payment->amount, 2) }}<br>
+                                <span style="margin-left: 15px;">{{ str_replace('_', ' ', ucfirst($payment->mode)) }} : <strong>{{ number_format($payment->amount, 2) }}</strong></span>
                             @endforeach
                         </td>
                     </tr>
