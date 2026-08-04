@@ -55,15 +55,18 @@
                             
                             <h5 class="mb-4">1. Master Details</h5>
                             <div class="row mb-4">
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label" for="date">Date <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control" id="date" name="date" value="{{ old('date', date('Y-m-d')) }}" required>
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label" for="purchase_time">Time <span class="text-danger">*</span></label>
                                     <input type="time" class="form-control" id="purchase_time" name="purchase_time" value="{{ old('purchase_time', date('H:i')) }}" required>
                                 </div>
-                                <div class="col-md-3 mb-3">
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label" for="party_id">Party (Seller) <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <select class="form-select select2-party" id="party_id" name="party_id" required>
@@ -75,7 +78,7 @@
                                         <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createPartyModal" title="Add New Party"><i class="feather-plus"></i></button>
                                     </div>
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label" for="broker_id">Broker</label>
                                     <div class="input-group">
                                         <select class="form-select select2-broker" id="broker_id" name="broker_id">
@@ -85,6 +88,23 @@
                                             @endforeach
                                         </select>
                                         <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createBrokerModal" title="Add New Broker"><i class="feather-plus"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4" id="detailsRow" style="display: none;">
+                                <div class="col-md-6" id="partyDetailsCol" style="display: none;">
+                                    <div class="card bg-light border-0 shadow-sm h-100">
+                                        <div class="card-body py-2 px-3 text-muted" style="font-size: 0.9em;">
+                                            <i class="feather-map-pin text-primary"></i> <span id="partyDetailsAddress"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6" id="brokerDetailsCol" style="display: none;">
+                                    <div class="card bg-light border-0 shadow-sm h-100">
+                                        <div class="card-body py-2 px-3 text-muted" style="font-size: 0.9em;">
+                                            <i class="feather-map-pin text-info"></i> <span id="brokerDetailsAddress"></span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -492,14 +512,58 @@
             return $party;
         };
 
+        function formatPartySelection(party) {
+            if (!party.id) return party.text;
+            var phone = $(party.element).data('phone') || '';
+            return phone ? (party.text + ' - ' + phone) : party.text;
+        }
+
+        function updateDetailsRow() {
+            var partyVis = $('#partyDetailsCol').is(':visible');
+            var brokerVis = $('#brokerDetailsCol').is(':visible');
+            if (partyVis || brokerVis) {
+                $('#detailsRow').show();
+            } else {
+                $('#detailsRow').hide();
+            }
+        }
+
         $('.select2-party').select2({
             templateResult: formatParty,
-            templateSelection: formatParty
+            templateSelection: formatPartySelection
+        }).on('select2:select', function (e) {
+            var data = e.params.data;
+            if (data.id) {
+                var address = $(data.element).data('address');
+                if (address && address.trim() !== '' && address.trim() !== 'N/A') {
+                    $('#partyDetailsAddress').text(address);
+                    $('#partyDetailsCol').show();
+                } else {
+                    $('#partyDetailsCol').hide();
+                }
+            } else {
+                $('#partyDetailsCol').hide();
+            }
+            updateDetailsRow();
         });
         
         $('.select2-broker').select2({
             templateResult: formatParty,
-            templateSelection: formatParty
+            templateSelection: formatPartySelection
+        }).on('select2:select', function (e) {
+            var data = e.params.data;
+            if (data.id) {
+                var address = $(data.element).data('address');
+                if (address && address.trim() !== '' && address.trim() !== 'N/A') {
+                    $('#brokerDetailsAddress').text(address);
+                    $('#brokerDetailsCol').show();
+                } else {
+                    $('#brokerDetailsCol').hide();
+                }
+            } else {
+                $('#brokerDetailsCol').hide();
+            }
+            updateDetailsRow();
         });
 
         $('#ajaxCreatePartyForm').on('submit', function(e) {
@@ -512,6 +576,7 @@
                 url: "{{ route('business.parties.store') }}",
                 type: 'POST',
                 data: $form.serialize(),
+                headers: { 'Accept': 'application/json' },
                 success: function(response) {
                     if(response.success) {
                         var party = response.party;
@@ -525,7 +590,7 @@
                     }
                 },
                 error: function(xhr) {
-                    var errors = xhr.responseJSON.errors;
+                    var errors = xhr.responseJSON ? xhr.responseJSON.errors : null;
                     var errorMsg = 'Failed to create party.';
                     if(errors) {
                         errorMsg = Object.values(errors).map(e => e.join(', ')).join('<br>');
@@ -548,6 +613,7 @@
                 url: "{{ route('business.financials.commissions.store-broker') }}",
                 type: 'POST',
                 data: $form.serialize(),
+                headers: { 'Accept': 'application/json' },
                 success: function(response) {
                     if(response.success) {
                         var broker = response.broker;

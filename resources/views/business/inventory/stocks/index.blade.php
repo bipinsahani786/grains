@@ -85,7 +85,7 @@
                                                 <td class="fw-bold">{{ $lot->lot_no }}</td>
                                                 <td>{{ $lot->initial_quantity }} Qtl &rarr; <strong>@qtyRaw($lot->initial_quantity) @unitLabel</strong></td>
                                                 <td class="{{ $lot->status == 'open' ? 'text-primary fw-bold' : 'text-muted' }}">@qtyRaw($lot->remaining_quantity) @unitLabel</td>
-                                                <td>₹{{ number_format($lot->rate, 2) }}</td>
+                                                <td>₹@rateRaw($lot->rate) / @unitLabel</td>
                                             </tr>
                                         @endforeach
                                     </tbody>

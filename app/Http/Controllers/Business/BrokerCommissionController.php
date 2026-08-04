@@ -13,53 +13,64 @@ class BrokerCommissionController extends Controller
     public function index()
     {
         $companyId = auth()->user()->company_id;
-        
+
         $commissions = BrokerCommissionRate::with(['broker', 'grain'])
             ->where('company_id', $companyId)
             ->get();
-            
+
         // We will pass brokers (who are not admins) and grains to the view for the "Add New" modal/form
         $brokers = User::where('company_id', $companyId)
             ->where('role', 'broker')
             ->get();
-            
+
         $grains = Grain::where('company_id', $companyId)->get();
-            
+
         return view('business.financials.commissions.index', compact('commissions', 'brokers', 'grains'));
     }
 
     public function storeBroker(Request $request)
     {
-        $request->validate([
-            'name'            => 'required|string|max:255',
-            'phone'           => 'nullable|string|max:20',
-            'address'         => 'nullable|string',
-            'commission_type' => 'nullable|string',
-            'rate'            => 'nullable|numeric|min:0',
-            'applies_to'      => 'nullable|in:purchase,sale,both',
-        ]);
-
         $companyId = auth()->user()->company_id;
 
-        $broker = \App\Models\Core\User::create([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'phone' => [
+                'nullable',
+                'string',
+                'max:20',
+                \Illuminate\Validation\Rule::unique('users', 'phone')->where(function ($query) use ($companyId) {
+                    return $query->where('company_id', $companyId);
+                })
+            ],
+            'address' => 'nullable|string',
+            'commission_type' => 'nullable|string',
+            'rate' => 'nullable|numeric|min:0',
+            'applies_to' => 'nullable|in:purchase,sale,both',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $broker = User::create([
             'company_id' => $companyId,
-            'role'       => 'broker',
-            'name'       => $request->name,
-            'phone'      => $request->phone,
-            'address'    => $request->address,
-            'email'      => strtolower(preg_replace('/\s+/', '', $request->name)) . rand(100, 999) . '@broker.com',
-            'password'   => bcrypt('password'),
+            'role' => 'broker',
+            'name' => $request->name,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'email' => strtolower(preg_replace('/\s+/', '', $request->name)) . rand(100, 999) . '@broker.com',
+            'password' => bcrypt('password'),
         ]);
 
         // Optionally create default commission rate
         if ($request->filled('commission_type') && $request->filled('rate') && $request->filled('applies_to')) {
             BrokerCommissionRate::create([
-                'company_id'      => $companyId,
-                'broker_id'       => $broker->id,
-                'grain_id'        => null,
+                'company_id' => $companyId,
+                'broker_id' => $broker->id,
+                'grain_id' => null,
                 'commission_type' => $request->commission_type,
-                'rate'            => $request->rate,
-                'applies_to'      => $request->applies_to,
+                'rate' => $request->rate,
+                'applies_to' => $request->applies_to,
             ]);
         }
 
@@ -91,7 +102,7 @@ class BrokerCommissionController extends Controller
         if (!$broker) {
             $broker = User::create([
                 'name' => $request->broker_name,
-                'email' => strtolower(str_replace(' ', '', $request->broker_name)) . rand(100,999) . '@broker.com',
+                'email' => strtolower(str_replace(' ', '', $request->broker_name)) . rand(100, 999) . '@broker.com',
                 'password' => bcrypt('password'),
                 'company_id' => $companyId,
                 'role' => 'broker',
@@ -104,7 +115,7 @@ class BrokerCommissionController extends Controller
             ->whereNull('grain_id')
             ->where('applies_to', $request->applies_to)
             ->exists();
-            
+
         if ($exists) {
             return back()->with('error', 'A commission rule for this broker and transaction type already exists. Please edit the existing one.');
         }
@@ -131,7 +142,7 @@ class BrokerCommissionController extends Controller
 
         $companyId = auth()->user()->company_id;
         $commission = BrokerCommissionRate::where('company_id', $companyId)->findOrFail($id);
-        
+
         $commission->update([
             'commission_type' => $request->commission_type,
             'rate' => $request->rate,
@@ -145,7 +156,7 @@ class BrokerCommissionController extends Controller
     {
         $companyId = auth()->user()->company_id;
         $commission = BrokerCommissionRate::where('company_id', $companyId)->findOrFail($id);
-        
+
         $commission->delete();
 
         return redirect()->route('business.financials.commissions.index')->with('success', 'Broker commission rate deleted successfully!');
@@ -166,10 +177,10 @@ class BrokerCommissionController extends Controller
             ->get();
 
         $stats = [
-            'total_earned'  => $entries->sum('commission_amount'),
-            'total_paid'    => $entries->sum('amount_paid'),
+            'total_earned' => $entries->sum('commission_amount'),
+            'total_paid' => $entries->sum('amount_paid'),
             'total_pending' => $entries->where('payment_status', 'pending')->sum(fn($e) => max(0, $e->commission_amount - $e->amount_paid)),
-            'entry_count'   => $entries->count(),
+            'entry_count' => $entries->count(),
         ];
 
         return view('business.financials.brokers.profile', compact('brokerUser', 'entries', 'stats'));
@@ -181,9 +192,9 @@ class BrokerCommissionController extends Controller
     public function markPaid(Request $request, string $entry)
     {
         $request->validate([
-            'amount'    => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:0.01',
             'paid_mode' => 'required|string|in:Cash,Cheque,Online,NEFT,UPI',
-            'paid_at'   => 'required|date',
+            'paid_at' => 'required|date',
             'payment_notes' => 'nullable|string|max:500',
         ]);
 
@@ -191,24 +202,24 @@ class BrokerCommissionController extends Controller
         $commission = \App\Models\Business\BrokerCommissionEntry::where('company_id', $companyId)->findOrFail($entry);
 
         $newPaid = min(
-            $commission->amount_paid + (float)$request->amount,
+            $commission->amount_paid + (float) $request->amount,
             $commission->commission_amount
         );
 
         $commission->update([
-            'amount_paid'    => $newPaid,
-            'paid_at'        => $request->paid_at,
-            'paid_mode'      => $request->paid_mode,
-            'payment_notes'  => $request->payment_notes,
+            'amount_paid' => $newPaid,
+            'paid_at' => $request->paid_at,
+            'paid_mode' => $request->paid_mode,
+            'payment_notes' => $request->payment_notes,
             'payment_status' => $newPaid >= $commission->commission_amount ? 'paid' : 'partial',
         ]);
 
         return response()->json([
-            'success'         => true,
-            'message'         => 'Commission payment of ₹' . number_format($request->amount, 2) . ' recorded.',
-            'amount_paid'     => $newPaid,
-            'pending_amount'  => max(0, $commission->commission_amount - $newPaid),
-            'payment_status'  => $commission->fresh()->payment_status,
+            'success' => true,
+            'message' => 'Commission payment of ₹' . number_format($request->amount, 2) . ' recorded.',
+            'amount_paid' => $newPaid,
+            'pending_amount' => max(0, $commission->commission_amount - $newPaid),
+            'payment_status' => $commission->fresh()->payment_status,
         ]);
     }
 }

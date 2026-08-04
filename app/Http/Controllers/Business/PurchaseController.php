@@ -60,7 +60,7 @@ class PurchaseController extends Controller
 
     public function print(Purchase $purchase)
     {
-        $purchase->load(['party', 'broker', 'items.grain', 'charges']);
+        $purchase->load(['party', 'broker', 'items.grain', 'charges', 'payments']);
         $company = Auth::user()->company;
         return view('business.purchases.print', compact('purchase', 'company'));
     }
@@ -161,32 +161,18 @@ class PurchaseController extends Controller
                 $lineTotal = $item['quantity'] * $item['rate'];
                 
                 // --- UNIT CONVERSION LOGIC ---
-                $qtyInQtl = $item['quantity'];
-                $ratePerQtl = $item['rate'];
-                
-                if ($item['unit'] === 'Kg') {
-                    $qtyInQtl = $item['quantity'] / 100;
-                    $ratePerQtl = $item['rate'] * 100;
-                } elseif ($item['unit'] === 'Ton') {
-                    $qtyInQtl = $item['quantity'] * 10;
-                    $ratePerQtl = $item['rate'] / 10;
-                } elseif ($item['unit'] === 'Bags') {
-                    // Convert bags to Kg first, then to Quintal
-                    $totalKg = $item['quantity'] * $bagWeight;
-                    $qtyInQtl = $totalKg / 100;
-                    // Rate is per Bag. Rate per Kg = Rate / BagWeight. Rate per Quintal = RatePerKg * 100
-                    $ratePerQtl = ($item['rate'] / $bagWeight) * 100;
-                }
+                $qtyInQtl = \App\Helpers\UnitHelper::toQtl($item['quantity'], $item['unit'], $bagWeight);
+                $ratePerQtl = \App\Helpers\UnitHelper::rateToQtl($item['rate'], $item['unit'], $bagWeight);
                 // -----------------------------
                 
                 $purchaseItem = PurchaseItem::create([
                     'purchase_id' => $purchase->id,
                     'grain_id' => $item['grain_id'],
                     'godown_id' => $item['godown_id'],
-                    'quantity' => $item['quantity'],
+                    'quantity' => $qtyInQtl,
                     'unit' => $item['unit'],
                     'moisture' => $item['moisture'] ?? null,
-                    'rate' => $item['rate'],
+                    'rate' => $ratePerQtl,
                     'total_amount' => $lineTotal
                 ]);
 
@@ -306,13 +292,8 @@ class PurchaseController extends Controller
                         $lineCommission = 0;
                         $lineTotal = $item['quantity'] * $item['rate'];
                         
-                        $qtyInKg = 0;
-                        if ($item['unit'] === 'Kg') $qtyInKg = $item['quantity'];
-                        if ($item['unit'] === 'Quintal') $qtyInKg = $item['quantity'] * 100;
-                        if ($item['unit'] === 'Ton') $qtyInKg = $item['quantity'] * 1000;
-                        if ($item['unit'] === 'Bags') $qtyInKg = $item['quantity'] * ($company->bag_weight_kg ?? 50);
-                        
-                        $qtyInQuintal = $qtyInKg / 100;
+                        $qtyInQuintal = \App\Helpers\UnitHelper::toQtl($item['quantity'], $item['unit'], $company->bag_weight_kg ?? 50);
+                        $qtyInKg = $qtyInQuintal * 100;
 
                         if ($commissionRule->commission_type === 'per_quintal') {
                             $lineCommission = $qtyInQuintal * $commissionRule->rate;

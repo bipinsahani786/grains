@@ -34,6 +34,7 @@ Route::prefix('business')->name('business.')->group(function () {
         Route::get('/party-ledger', [\App\Http\Controllers\Business\ReportController::class, 'partyLedger'])->name('party-ledger');
         Route::get('/broker-commission', [\App\Http\Controllers\Business\ReportController::class, 'brokerCommission'])->name('broker-commission');
         Route::get('/profit', [\App\Http\Controllers\Business\ReportController::class, 'profit'])->name('profit');
+        Route::get('/expenses', [\App\Http\Controllers\Business\ReportController::class, 'expenseSummary'])->name('expenses');
     });
 
     // Settings
@@ -41,6 +42,11 @@ Route::prefix('business')->name('business.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Business\SettingController::class, 'index'])->name('settings.index');
         Route::post('/', [\App\Http\Controllers\Business\SettingController::class, 'update'])->name('settings.update');
     });
+
+    // Expenses
+    Route::resource('expenses/categories', \App\Http\Controllers\Business\ExpenseCategoryController::class)
+        ->names('expenses.categories')->except(['show', 'create', 'edit']);
+    Route::resource('expenses', \App\Http\Controllers\Business\ExpenseController::class)->except(['show']);
 
     // Financials Routes
     Route::prefix('financials')->name('financials.')->group(function () {

@@ -82,7 +82,7 @@
                                                 <small class="text-muted d-block">ID: {{ $entry->reference_id }}</small>
                                             </td>
                                             <td>@qtyRaw($entry->quantity) @unitLabel</td>
-                                            <td>₹{{ number_format($entry->rate, 2) }}</td>
+                                            <td>₹@rateRaw($entry->rate) / @unitLabel</td>
                                             <td>
                                                 <span class="text-capitalize">{{ str_replace('_', ' ', $entry->commission_type) }}</span>: 
                                                 @if($entry->commission_type == 'percentage')

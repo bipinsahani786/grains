@@ -15,6 +15,7 @@ class UnitHelper
     public static function fromQtl(?float $qtl, string $unit, float $bagWeight = 50): float
     {
         $qtl = (float) $qtl;
+        $unit = ucfirst(strtolower(trim($unit)));
         return match ($unit) {
             'Kg'    => $qtl * 100,
             'Ton'   => $qtl / 10,
@@ -34,6 +35,7 @@ class UnitHelper
     public static function toQtl(?float $qty, string $unit, float $bagWeight = 50): float
     {
         $qty = (float) $qty;
+        $unit = ucfirst(strtolower(trim($unit)));
         return match ($unit) {
             'Kg'    => $qty / 100,
             'Ton'   => $qty * 10,
@@ -47,6 +49,7 @@ class UnitHelper
      */
     public static function label(string $unit): string
     {
+        $unit = ucfirst(strtolower(trim($unit)));
         return match ($unit) {
             'Kg'    => 'Kg',
             'Ton'   => 'Ton',
@@ -72,6 +75,7 @@ class UnitHelper
     public static function rateFromQtl(?float $ratePerQtl, string $unit, float $bagWeight = 50): float
     {
         $rate = (float) $ratePerQtl;
+        $unit = ucfirst(strtolower(trim($unit)));
         return match ($unit) {
             'Kg'    => $rate / 100,
             'Ton'   => $rate * 10,
@@ -87,6 +91,7 @@ class UnitHelper
     public static function rateToQtl(?float $rate, string $unit, float $bagWeight = 50): float
     {
         $rate = (float) $rate;
+        $unit = ucfirst(strtolower(trim($unit)));
         return match ($unit) {
             'Kg'    => $rate * 100,
             'Ton'   => $rate / 10,

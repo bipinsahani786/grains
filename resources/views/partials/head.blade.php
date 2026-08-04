@@ -1,5 +1,14 @@
-<meta charset="utf-8" />
+    <meta charset="utf-8" />
     <meta http-equiv="x-ua-compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+    @if(isset($platformFavicon) && $platformFavicon)
+        <link rel="icon" type="image/png" href="{{ asset('storage/' . $platformFavicon) }}" />
+    @else
+        <link rel="icon" type="image/x-icon" href="{{ asset('assets/images/favicon.ico') }}" />
+    @endif
+    
+    <title>{{ $platformBrand ?? 'GrainTrack' }} - Business Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="" />
     <meta name="keyword" content="" />

@@ -28,17 +28,27 @@ class AppServiceProvider extends ServiceProvider
             $displayUnit = 'Quintal';
             $bagWeightKg = 50;
 
+            $platformBrand = 'GrainTrack';
+            $platformLogo = null;
+            $platformFavicon = null;
+
             if (Auth::check()) {
                 $company = Auth::user()->company;
                 if ($company) {
                     $displayUnit = $company->display_unit ?? 'Quintal';
                     $bagWeightKg = (float) ($company->bag_weight_kg ?? 50);
+                    $platformBrand = $company->brand_name ?? $company->name ?? 'GrainTrack';
+                    $platformLogo = $company->logo_path;
+                    $platformFavicon = $company->favicon_path;
                 }
             }
 
             $view->with([
                 'displayUnit' => $displayUnit,
                 'bagWeightKg' => $bagWeightKg,
+                'platformBrand' => $platformBrand,
+                'platformLogo' => $platformLogo,
+                'platformFavicon' => $platformFavicon,
             ]);
         });
 
@@ -59,6 +69,14 @@ class AppServiceProvider extends ServiceProvider
          */
         Blade::directive('qtyRaw', function ($expression) {
             return "<?php echo number_format(\\App\\Helpers\\UnitHelper::fromQtl($expression, \$displayUnit, \$bagWeightKg), 2); ?>";
+        });
+
+        /**
+         * @rateRaw($rateQtlValue)
+         * Converts rate from per-Quintal to per-$displayUnit and formats it.
+         */
+        Blade::directive('rateRaw', function ($expression) {
+            return "<?php echo number_format(\\App\\Helpers\\UnitHelper::rateFromQtl($expression, \$displayUnit, \$bagWeightKg), 2); ?>";
         });
 
         /**

@@ -10,6 +10,8 @@ use App\Models\Business\GrainStock;
 use App\Models\Business\Lot;
 use App\Models\Business\LedgerEntry;
 use App\Models\Business\BrokerCommissionEntry;
+use App\Models\Business\Expense;
+use App\Models\Business\ExpenseCategory;
 use App\Models\Core\User;
 use App\Models\Business\Grain;
 use Carbon\Carbon;
@@ -127,8 +129,11 @@ class ReportController extends Controller
         $companyId = auth()->user()->company_id;
         $query = Sale::with(['grain', 'saleLotAllocations.lot', 'brokerCommission'])->where('company_id', $companyId);
 
-        if ($request->filled('start_date') && $request->filled('end_date')) {
-            $query->whereBetween('date', [$request->start_date, $request->end_date]);
+        $startDate = $request->start_date ?? null;
+        $endDate   = $request->end_date ?? null;
+
+        if ($startDate && $endDate) {
+            $query->whereBetween('date', [$startDate, $endDate]);
         }
         
         $sales = $query->orderBy('date', 'desc')->get();
@@ -146,15 +151,59 @@ class ReportController extends Controller
             $netProfit = $grossProfit - $brokerCommission;
             
             $profitData[] = (object)[
-                'sale' => $sale,
-                'revenue' => $sale->total_amount,
-                'cogs' => $cogs,
-                'gross_profit' => $grossProfit,
-                'broker_commission' => $brokerCommission,
-                'net_profit' => $netProfit
+                'sale'             => $sale,
+                'revenue'          => $sale->total_amount,
+                'cogs'             => $cogs,
+                'gross_profit'     => $grossProfit,
+                'broker_commission'=> $brokerCommission,
+                'net_profit'       => $netProfit
             ];
         }
 
-        return view('business.reports.profit', compact('profitData'));
+        // Deduct Expenses from profit
+        $expenseQuery = Expense::where('company_id', $companyId);
+        if ($startDate && $endDate) {
+            $expenseQuery->whereBetween('date', [$startDate, $endDate]);
+        }
+        $totalExpenses = $expenseQuery->sum('amount');
+        $expensesByCategory = $expenseQuery->selectRaw('category_id, SUM(amount) as total')
+            ->with('category')->groupBy('category_id')->get();
+
+        return view('business.reports.profit', compact('profitData', 'totalExpenses', 'expensesByCategory', 'startDate', 'endDate'));
+    }
+
+    public function expenseSummary(Request $request)
+    {
+        $companyId = auth()->user()->company_id;
+        $startDate = $request->start_date ?? now()->startOfMonth()->format('Y-m-d');
+        $endDate   = $request->end_date ?? now()->format('Y-m-d');
+
+        $query = Expense::with(['category'])
+            ->where('company_id', $companyId)
+            ->whereBetween('date', [$startDate, $endDate]);
+
+        $expenses = $query->orderBy('date', 'desc')->get();
+        $totalExpenses = $expenses->sum('amount');
+        $expenseCount  = $expenses->count();
+
+        $categoryBreakdown = Expense::selectRaw('category_id, COUNT(*) as count, SUM(amount) as total')
+            ->with('category')
+            ->where('company_id', $companyId)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->groupBy('category_id')
+            ->orderByDesc('total')
+            ->get();
+
+        $modeBreakdown = Expense::selectRaw('payment_mode, COUNT(*) as count, SUM(amount) as total')
+            ->where('company_id', $companyId)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->groupBy('payment_mode')
+            ->orderByDesc('total')
+            ->get();
+
+        return view('business.reports.expenses', compact(
+            'expenses', 'totalExpenses', 'expenseCount',
+            'categoryBreakdown', 'modeBreakdown', 'startDate', 'endDate'
+        ));
     }
 }

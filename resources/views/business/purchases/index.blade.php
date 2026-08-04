@@ -114,7 +114,7 @@
                                                                             <td>{{ $purchaseItem->godown->name ?? 'N/A' }}</td>
                                                                             <td>{{ $purchaseItem->moisture ? $purchaseItem->moisture . '%' : '-' }}</td>
                                                                             <td>@qtyRaw($purchaseItem->quantity) @unitLabel</td>
-                                                                            <td>₹{{ number_format($purchaseItem->rate, 2) }}</td>
+                                                                            <td>₹@rateRaw($purchaseItem->rate) / @unitLabel</td>
                                                                             <td class="fw-bold text-dark">₹{{ number_format($purchaseItem->quantity * $purchaseItem->rate, 2) }}</td>
                                                                             <td><span class="badge bg-soft-secondary text-dark">{{ $lot->lot_no ?? 'N/A' }}</span></td>
                                                                         </tr>

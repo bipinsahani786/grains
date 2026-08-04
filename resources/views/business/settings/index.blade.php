@@ -31,6 +31,42 @@
                         <form action="{{ route('business.settings.update') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             
+                            <h6 class="mb-3 text-primary border-bottom pb-2">Company Profile & Whitelabel</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Brand / Company Name</label>
+                                    <input type="text" name="brand_name" class="form-control" value="{{ old('brand_name', $company->brand_name ?? $company->name) }}" placeholder="e.g. Acme Grains">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">GSTIN</label>
+                                    <input type="text" name="gstin" class="form-control" value="{{ old('gstin', $company->gstin) }}" placeholder="e.g. 22AAAAA0000A1Z5">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Phone No.</label>
+                                    <input type="text" name="phone" class="form-control" value="{{ old('phone', $company->phone) }}" placeholder="e.g. 9876543210">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Address</label>
+                                    <input type="text" name="address" class="form-control" value="{{ old('address', $company->address) }}" placeholder="e.g. 123 Main St, City">
+                                </div>
+                            </div>
+                            <div class="row mb-5">
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Logo (Dashboard Sidebar)</label>
+                                    <input type="file" name="logo" class="form-control" accept="image/*">
+                                    @if($company->logo_path)
+                                        <div class="mt-2"><img src="{{ Storage::url($company->logo_path) }}" alt="Logo" height="40"></div>
+                                    @endif
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Favicon (Browser Tab)</label>
+                                    <input type="file" name="favicon" class="form-control" accept="image/*">
+                                    @if($company->favicon_path)
+                                        <div class="mt-2"><img src="{{ Storage::url($company->favicon_path) }}" alt="Favicon" height="24"></div>
+                                    @endif
+                                </div>
+                            </div>
+                            
                             <h6 class="mb-3 text-primary border-bottom pb-2">Purchase Sequence Settings</h6>
                             <div class="row mb-4">
                                 <div class="col-md-3 mb-3">

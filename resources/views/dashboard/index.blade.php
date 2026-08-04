@@ -9,8 +9,42 @@
                         <h5 class="m-b-10">Dashboard</h5>
                     </div>
                 </div>
+                <div class="page-header-right ms-auto">
+                    <div class="page-header-right-items">
+                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                            <form method="GET" class="d-flex align-items-center gap-2" id="dashboardFilterForm">
+                                <select name="period" class="form-select form-select-sm" onchange="toggleCustomDates(this.value)">
+                                    <option value="today" {{ $period == 'today' ? 'selected' : '' }}>Today</option>
+                                    <option value="this_month" {{ $period == 'this_month' ? 'selected' : '' }}>This Month</option>
+                                    <option value="custom" {{ $period == 'custom' ? 'selected' : '' }}>Custom Date</option>
+                                </select>
+                                
+                                <div id="customDateFields" class="d-flex align-items-center gap-2" style="display: {{ $period == 'custom' ? 'flex' : 'none !important' }};">
+                                    <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request('start_date', $startDate->format('Y-m-d')) }}">
+                                    <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request('end_date', $endDate->format('Y-m-d')) }}">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
             <!-- [ page-header ] end -->
+
+            <script>
+            function toggleCustomDates(val) {
+                const fields = document.getElementById('customDateFields');
+                if (val === 'custom') {
+                    fields.style.display = 'flex';
+                    fields.style.setProperty('display', 'flex', 'important');
+                } else {
+                    fields.style.display = 'none';
+                    fields.style.setProperty('display', 'none', 'important');
+                    document.getElementById('dashboardFilterForm').submit();
+                }
+            }
+            </script>
             <!-- [ Main Content ] start -->
             <div class="main-content">
                 <div class="row">
@@ -24,8 +58,8 @@
                                             <i class="feather-shopping-cart"></i>
                                         </div>
                                         <div class="overflow-hidden w-100">
-                                            <div class="fs-5 fw-bold text-dark text-truncate">₹{{ number_format($todayPurchases, 0) }}</div>
-                                            <h3 class="fs-12 fw-semibold text-truncate-1-line mb-0">Today's Purchases</h3>
+                                            <div class="fs-5 fw-bold text-dark text-truncate">₹{{ number_format($periodPurchases, 0) }}</div>
+                                            <h3 class="fs-12 fw-semibold text-truncate-1-line mb-0">Purchases</h3>
                                         </div>
                                     </div>
                                 </div>
@@ -43,8 +77,8 @@
                                             <i class="feather-trending-up"></i>
                                         </div>
                                         <div class="overflow-hidden w-100">
-                                            <div class="fs-5 fw-bold text-dark text-truncate">₹{{ number_format($todaySales, 0) }}</div>
-                                            <h3 class="fs-12 fw-semibold text-truncate-1-line mb-0">Today's Sales</h3>
+                                            <div class="fs-5 fw-bold text-dark text-truncate">₹{{ number_format($periodSales, 0) }}</div>
+                                            <h3 class="fs-12 fw-semibold text-truncate-1-line mb-0">Sales</h3>
                                         </div>
                                     </div>
                                 </div>
@@ -62,8 +96,8 @@
                                             <i class="feather-pie-chart"></i>
                                         </div>
                                         <div class="overflow-hidden w-100">
-                                            <div class="fs-5 fw-bold text-dark text-truncate">₹{{ number_format($todayProfit, 0) }}</div>
-                                            <h3 class="fs-12 fw-semibold text-truncate-1-line mb-0">Today's Net Profit</h3>
+                                            <div class="fs-5 fw-bold text-dark text-truncate">₹{{ number_format($periodProfit, 0) }}</div>
+                                            <h3 class="fs-12 fw-semibold text-truncate-1-line mb-0">Net Profit</h3>
                                         </div>
                                     </div>
                                 </div>
@@ -71,6 +105,25 @@
                         </div>
                     </div>
                     <!-- [Today's Profit] end -->
+                    <!-- [Today's Expenses] start -->
+                    <div class="col-xl-4 col-lg-6 col-md-6">
+                        <div class="card stretch stretch-full" onclick="window.location.href='{{ route('business.expenses.index') }}'" style="cursor: pointer;">
+                            <div class="card-body p-3 hover-effect">
+                                <div class="d-flex align-items-start justify-content-between mb-2">
+                                    <div class="d-flex gap-3 align-items-center w-100 overflow-hidden">
+                                        <div class="avatar-text bg-soft-danger text-danger">
+                                            <i class="feather-trending-down"></i>
+                                        </div>
+                                        <div class="overflow-hidden w-100">
+                                            <div class="fs-5 fw-bold text-dark text-truncate">₹{{ number_format($periodExpenses, 0) }}</div>
+                                            <h3 class="fs-12 fw-semibold text-truncate-1-line mb-0">Expenses</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- [Today's Expenses] end -->
                     <!-- [Current Stock] start -->
                     <div class="col-xl-4 col-lg-6 col-md-6">
                         <div class="card stretch stretch-full" onclick="window.location.href='{{ route('business.reports.current-stock') }}'" style="cursor: pointer;">
@@ -128,7 +181,9 @@
                         </div>
                     </div>
                     <!-- [Total Payable] end -->
-                    
+                </div> <!-- End of stats row -->
+                
+                <div class="row">
                     <!-- [Charts Section] -->
                     <div class="col-xl-8 col-lg-12">
                         <div class="card stretch stretch-full">

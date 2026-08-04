@@ -109,4 +109,53 @@
         </div>
     </div>
 </div>
+
+{{-- Expense Deduction Box --}}
+@php
+    $totalNetProfitFromSales = collect($profitData)->sum('net_profit');
+    $finalNetProfit = $totalNetProfitFromSales - ($totalExpenses ?? 0);
+@endphp
+
+@if(isset($totalExpenses) && $totalExpenses > 0)
+<div class="nxl-content pt-0">
+    <div class="main-content pt-0">
+        <div class="row">
+            <div class="col-lg-6 offset-lg-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h6 class="mb-0 fw-bold">Profit Summary (After Expenses)</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table mb-0">
+                            <tr>
+                                <td class="text-muted">Net Profit from Sales</td>
+                                <td class="text-end fw-bold text-success">₹{{ number_format($totalNetProfitFromSales, 2) }}</td>
+                            </tr>
+                            @foreach($expensesByCategory ?? [] as $expRow)
+                                <tr>
+                                    <td class="text-muted ps-4">
+                                        <small>— {{ $expRow->category->name ?? 'Other' }}</small>
+                                    </td>
+                                    <td class="text-end text-danger small">- ₹{{ number_format($expRow->total, 2) }}</td>
+                                </tr>
+                            @endforeach
+                            <tr class="table-light">
+                                <th>Total Expenses</th>
+                                <th class="text-end text-danger">- ₹{{ number_format($totalExpenses, 2) }}</th>
+                            </tr>
+                            <tr class="table-{{ $finalNetProfit >= 0 ? 'success' : 'danger' }} bg-opacity-10">
+                                <th class="fs-6">Final Net Profit</th>
+                                <th class="text-end fs-5 {{ $finalNetProfit >= 0 ? 'text-success' : 'text-danger' }}">
+                                    ₹{{ number_format($finalNetProfit, 2) }}
+                                </th>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 @endsection

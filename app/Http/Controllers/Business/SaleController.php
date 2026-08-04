@@ -23,7 +23,7 @@ class SaleController extends Controller
 {
     public function print(Sale $sale)
     {
-        $sale->load(['party', 'broker', 'grain', 'collections', 'charges']);
+        $sale->load(['party', 'broker', 'grain', 'collections', 'charges', 'payments']);
         $company = Auth::user()->company;
         return view('business.sales.print', compact('sale', 'company'));
     }
@@ -121,16 +121,8 @@ class SaleController extends Controller
         // --- UNIT CONVERSION LOGIC ---
         $bagWeight = auth()->user()->company->bag_weight_kg ?? 50;
         $requiredQuantity = $request->quantity; // Original value
-        $qtyInQtl = $request->quantity;
-
-        if ($request->unit === 'Kg') {
-            $qtyInQtl = $request->quantity / 100;
-        } elseif ($request->unit === 'Ton') {
-            $qtyInQtl = $request->quantity * 10;
-        } elseif ($request->unit === 'Bags') {
-            $totalKg = $request->quantity * $bagWeight;
-            $qtyInQtl = $totalKg / 100;
-        }
+        $qtyInQtl = \App\Helpers\UnitHelper::toQtl($request->quantity, $request->unit, $bagWeight);
+        $ratePerQtl = \App\Helpers\UnitHelper::rateToQtl($request->rate, $request->unit, $bagWeight);
         // -----------------------------
 
         // Check if enough total stock is available for this grain (in Quintals)
@@ -177,7 +169,7 @@ class SaleController extends Controller
 
         $partyId = $request->party_id; // already validated as exists:users,id
 
-        DB::transaction(function () use ($request, $companyId, $grandTotal, $netAmount, $discountPercent, $discountAmount, $amountPaid, $outstandingAmount, $chargesTotal, $partyId, $qtyInQtl) {
+        DB::transaction(function () use ($request, $companyId, $grandTotal, $netAmount, $discountPercent, $discountAmount, $amountPaid, $outstandingAmount, $chargesTotal, $partyId, $qtyInQtl, $ratePerQtl) {
             
             // Auto-generate Sale No
             $company = Auth::user()->company;
@@ -219,9 +211,9 @@ class SaleController extends Controller
                 'party_id'         => $partyId,
                 'broker_id'        => $request->broker_id,
                 'grain_id'         => $request->grain_id,
-                'quantity'         => $request->quantity,
+                'quantity'         => $qtyInQtl,
                 'unit'             => $request->unit,
-                'rate'             => $request->rate,
+                'rate'             => $ratePerQtl,
                 'total_amount'     => $grandTotal,
                 'payment_mode'     => $request->payment_mode,
                 'discount_percent' => $discountPercent,
@@ -361,8 +353,8 @@ class SaleController extends Controller
 
                 if ($commissionRule) {
                     $commissionAmount = 0;
-                    $qtyInKg = ($request->unit == 'Quintal') ? $request->quantity * 100 : (($request->unit == 'Ton') ? $request->quantity * 1000 : (($request->unit == 'Kg') ? $request->quantity : 0));
-                    $qtyInQuintal = $qtyInKg / 100;
+                    $qtyInQuintal = \App\Helpers\UnitHelper::toQtl($request->quantity, $request->unit, $company->bag_weight_kg ?? 50);
+                    $qtyInKg = $qtyInQuintal * 100;
 
                     if ($commissionRule->commission_type == 'per_quintal') {
                         $commissionAmount = $qtyInQuintal * $commissionRule->rate;
@@ -443,17 +435,8 @@ class SaleController extends Controller
                 ->delete();
             
             // Revert Grain Stock
-            $qtyInQtl = 0;
-            if ($sale->unit === 'Kg') {
-                $qtyInQtl = $sale->quantity / 100;
-            } elseif ($sale->unit === 'Ton') {
-                $qtyInQtl = $sale->quantity * 10;
-            } elseif ($sale->unit === 'Bags') {
-                $bagWeight = auth()->user()->company->bag_weight_kg ?? 50;
-                $qtyInQtl = ($sale->quantity * $bagWeight) / 100;
-            } else {
-                $qtyInQtl = $sale->quantity; // Quintal
-            }
+            // quantity is now stored in Quintals directly
+            $qtyInQtl = $sale->quantity;
             
             $grainStock = \App\Models\Business\GrainStock::where('company_id', $companyId)
                 ->where('grain_id', $sale->grain_id)

@@ -2,12 +2,12 @@
     <div class="navbar-wrapper">
         <div class="m-header">
             <a href="/" class="b-brand d-flex align-items-center">
-                @if(isset($__platformLogo) && $__platformLogo)
-                    <img src="{{ Storage::url($__platformLogo) }}" alt="{{ $__platformBrand ?? 'Platform' }}" class="logo logo-lg" style="max-height: 40px;" />
-                    <img src="{{ Storage::url($__platformLogo) }}" alt="{{ $__platformBrand ?? 'Platform' }}" class="logo logo-sm" style="max-height: 30px;" />
+                @if(isset($platformLogo) && $platformLogo)
+                    <img src="{{ asset('storage/' . $platformLogo) }}" alt="{{ $platformBrand ?? 'Platform' }}" class="logo logo-lg" style="max-height: 40px;" />
+                    <img src="{{ asset('storage/' . $platformLogo) }}" alt="{{ $platformBrand ?? 'Platform' }}" class="logo logo-sm" style="max-height: 30px;" />
                 @else
-                    <h3 class="logo logo-lg text-primary fw-bolder mb-0">{{ $__platformBrand ?? 'Platform' }}</h3>
-                    <h3 class="logo logo-sm text-primary fw-bolder mb-0">{{ substr($__platformBrand ?? 'P', 0, 1) }}</h3>
+                    <h3 class="logo logo-lg text-primary fw-bolder mb-0">{{ $platformBrand ?? 'Platform' }}</h3>
+                    <h3 class="logo logo-sm text-primary fw-bolder mb-0">{{ substr($platformBrand ?? 'P', 0, 1) }}</h3>
                 @endif
             </a>
         </div>
@@ -167,6 +167,12 @@
                         <span class="nxl-mtext">Ledger Entries</span>
                     </a>
                 </li>
+                <li class="nxl-item {{ request()->routeIs('business.expenses.*') ? 'active' : '' }}">
+                    <a href="{{ route('business.expenses.index') }}" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-credit-card"></i></span>
+                        <span class="nxl-mtext">Expenses</span>
+                    </a>
+                </li>
 
 
                 <li class="nxl-item nxl-caption">
@@ -200,6 +206,12 @@
                     <a href="{{ route('business.reports.profit') }}" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-trending-up"></i></span>
                         <span class="nxl-mtext">Profit Report</span>
+                    </a>
+                </li>
+                <li class="nxl-item {{ request()->routeIs('business.reports.expenses') ? 'active' : '' }}">
+                    <a href="{{ route('business.reports.expenses') }}" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-trending-down"></i></span>
+                        <span class="nxl-mtext">Expense Report</span>
                     </a>
                 </li>
                 @endif

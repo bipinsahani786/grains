@@ -64,7 +64,7 @@
                                             </td>
                                             <td><span class="badge bg-soft-primary text-primary">{{ $item->grain->name ?? 'N/A' }}</span></td>
                                             <td>@qtyRaw($item->quantity) @unitLabel</td>
-                                            <td>₹{{ number_format($item->rate, 2) }}</td>
+                                            <td>₹@rateRaw($item->rate) / @unitLabel</td>
                                             <td>
                                                 <span class="text-success fw-bold d-block">₹{{ number_format($item->total_amount, 2) }}</span>
                                                 @if($item->payment_mode === 'regular' && $item->remaining_outstanding > 0)

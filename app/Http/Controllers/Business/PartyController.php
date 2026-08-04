@@ -36,16 +36,33 @@ class PartyController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $companyId = auth()->user()->company_id;
+        
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'entity_type' => 'required|in:Company,Individual',
             'name' => 'required|string|max:255',
             'party_type_id' => 'required|string',
+            'phone' => [
+                'nullable',
+                'string',
+                'max:20',
+                \Illuminate\Validation\Rule::unique('users', 'phone')->where(function ($query) use ($companyId) {
+                    return $query->where('company_id', $companyId);
+                })
+            ],
             'email' => 'nullable|email|unique:users,email',
             'password' => 'nullable|string|min:8|confirmed',
             'opening_balance' => 'nullable|numeric',
             'opening_balance_type' => 'nullable|string|in:credit,debit',
             'role' => 'nullable|in:party,broker',
         ]);
+
+        if ($validator->fails()) {
+            if ($request->ajax()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
 
         $partyTypeId = $this->resolvePartyType($request->party_type_id);
 

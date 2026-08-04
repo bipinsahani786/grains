@@ -17,6 +17,13 @@ class SettingController extends Controller
     public function update(Request $request)
     {
         $request->validate([
+            'brand_name' => 'nullable|string|max:100',
+            'gstin' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'logo' => 'nullable|image|max:2048',
+            'favicon' => 'nullable|image|max:1024',
+            
             'purchase_prefix' => 'nullable|string|max:20',
             'purchase_year_format' => 'nullable|string|max:20',
             'purchase_sequence_length' => 'required|integer|min:1|max:10',
@@ -39,6 +46,11 @@ class SettingController extends Controller
         ]);
 
         $company = Auth::user()->company;
+        $company->brand_name = $request->brand_name;
+        $company->gstin = $request->gstin;
+        $company->phone = $request->phone;
+        $company->address = $request->address;
+        
         $company->purchase_prefix = $request->purchase_prefix ?? '';
         $company->purchase_year_format = $request->purchase_year_format;
         $company->purchase_sequence_length = $request->purchase_sequence_length;
@@ -55,6 +67,12 @@ class SettingController extends Controller
         $company->billing_bank_details = $request->billing_bank_details;
         $company->billing_authorised_signatory_text = $request->billing_authorised_signatory_text ?? 'Authorised Signatory';
 
+        if ($request->hasFile('logo')) {
+            $company->logo_path = $request->file('logo')->store('company_billing', 'public');
+        }
+        if ($request->hasFile('favicon')) {
+            $company->favicon_path = $request->file('favicon')->store('company_billing', 'public');
+        }
         if ($request->hasFile('purchase_header')) {
             $company->purchase_header_path = $request->file('purchase_header')->store('company_billing', 'public');
         }

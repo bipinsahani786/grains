@@ -60,7 +60,7 @@
                                             <td class="fw-bold {{ $lot->remaining_quantity > 0 ? 'text-success' : 'text-danger' }}">
                                                 @qtyRaw($lot->remaining_quantity) @unitLabel
                                             </td>
-                                            <td>₹{{ number_format($lot->rate, 2) }}</td>
+                                            <td>₹@rateRaw($lot->rate) / @unitLabel</td>
                                             <td>
                                                 @if($lot->status == 'open')
                                                     <span class="badge bg-soft-success text-success">Open</span>

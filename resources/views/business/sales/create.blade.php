@@ -67,15 +67,18 @@
                             {{-- SECTION 1: MASTER DETAILS --}}
                             <p class="section-label">1. Master Details</p>
                             <div class="row mb-2">
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label" for="date">Date <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control" id="date" name="date" value="{{ old('date', date('Y-m-d')) }}" required>
                                 </div>
-                                <div class="col-md-2 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label" for="sale_time">Time <span class="text-danger">*</span></label>
                                     <input type="time" class="form-control" id="sale_time" name="sale_time" value="{{ old('sale_time', date('H:i')) }}" required>
                                 </div>
-                                <div class="col-md-4 mb-3">
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label" for="party_id">Customer (Party) <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <select class="form-select select2-party" id="party_id" name="party_id" required>
@@ -87,7 +90,7 @@
                                         <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createPartyModal" title="Add New Party"><i class="feather-plus"></i></button>
                                     </div>
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label" for="broker_id">Broker <small class="text-muted">(Optional)</small></label>
                                     <div class="input-group">
                                         <select class="form-select select2-broker" id="broker_id" name="broker_id">
@@ -97,6 +100,23 @@
                                             @endforeach
                                         </select>
                                         <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createBrokerModal" title="Add New Broker"><i class="feather-plus"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3" id="detailsRow" style="display: none;">
+                                <div class="col-md-6" id="partyDetailsCol" style="display: none;">
+                                    <div class="card bg-light border-0 shadow-sm h-100">
+                                        <div class="card-body py-2 px-3 text-muted" style="font-size: 0.9em;">
+                                            <i class="feather-map-pin text-primary"></i> <span id="partyDetailsAddress"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6" id="brokerDetailsCol" style="display: none;">
+                                    <div class="card bg-light border-0 shadow-sm h-100">
+                                        <div class="card-body py-2 px-3 text-muted" style="font-size: 0.9em;">
+                                            <i class="feather-map-pin text-info"></i> <span id="brokerDetailsAddress"></span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -486,8 +506,46 @@ $(document).ready(function() {
         return phone ? (user.text + ' - ' + phone) : user.text;
     }
 
-    $('.select2-party').select2({ templateResult: formatUser, templateSelection: formatSelection });
-    $('.select2-broker').select2({ templateResult: formatUser, templateSelection: formatSelection });
+    function updateDetailsRow() {
+        var partyVis = $('#partyDetailsCol').is(':visible');
+        var brokerVis = $('#brokerDetailsCol').is(':visible');
+        if (partyVis || brokerVis) {
+            $('#detailsRow').show();
+        } else {
+            $('#detailsRow').hide();
+        }
+    }
+
+    $('.select2-party').select2({ templateResult: formatUser, templateSelection: formatSelection }).on('select2:select', function (e) {
+        var data = e.params.data;
+        if (data.id) {
+            var address = $(data.element).data('address');
+            if (address && address.trim() !== '' && address.trim() !== 'N/A') {
+                $('#partyDetailsAddress').text(address);
+                $('#partyDetailsCol').show();
+            } else {
+                $('#partyDetailsCol').hide();
+            }
+        } else {
+            $('#partyDetailsCol').hide();
+        }
+        updateDetailsRow();
+    });
+    $('.select2-broker').select2({ templateResult: formatUser, templateSelection: formatSelection }).on('select2:select', function (e) {
+        var data = e.params.data;
+        if (data.id) {
+            var address = $(data.element).data('address');
+            if (address && address.trim() !== '' && address.trim() !== 'N/A') {
+                $('#brokerDetailsAddress').text(address);
+                $('#brokerDetailsCol').show();
+            } else {
+                $('#brokerDetailsCol').hide();
+            }
+        } else {
+            $('#brokerDetailsCol').hide();
+        }
+        updateDetailsRow();
+    });
 
     // Party AJAX create
     $('#ajaxCreatePartyForm').on('submit', function(e) {
@@ -495,6 +553,7 @@ $(document).ready(function() {
         var $btn = $('#btnSaveParty').prop('disabled', true).text('Saving...');
         $.ajax({
             url: "{{ route('business.parties.store') }}", type: 'POST', data: $(this).serialize(),
+            headers: { 'Accept': 'application/json' },
             success: function(r) {
                 if (r.success) {
                     var opt = new Option(r.party.name, r.party.id, true, true);
@@ -518,6 +577,7 @@ $(document).ready(function() {
         var $btn = $('#btnSaveBroker').prop('disabled', true).text('Saving...');
         $.ajax({
             url: "{{ route('business.financials.commissions.store-broker') }}", type: 'POST', data: $(this).serialize(),
+            headers: { 'Accept': 'application/json' },
             success: function(r) {
                 if (r.success) {
                     var opt = new Option(r.broker.name, r.broker.id, true, true);

@@ -82,7 +82,7 @@
                                             <td>{{ $sale->broker->name ?? 'N/A' }}</td>
                                             <td>{{ $sale->grain->name ?? 'N/A' }}</td>
                                             <td>@qtyRaw($sale->quantity) @unitLabel</td>
-                                            <td>₹{{ number_format($sale->rate, 2) }}</td>
+                                            <td>₹@rateRaw($sale->rate) / @unitLabel</td>
                                             <td class="fw-bold text-dark">₹{{ number_format($sale->total_amount, 2) }}</td>
                                         </tr>
                                     @empty

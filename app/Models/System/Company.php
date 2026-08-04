@@ -10,8 +10,8 @@ class Company extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'address', 'type', 'email', 'phone', 'gstin', 
-        'logo_path', 'signature_stamp_path', 'is_active', 'purchase_prefix', 'sale_prefix',
+        'name', 'brand_name', 'address', 'type', 'email', 'phone', 'gstin', 
+        'logo_path', 'favicon_path', 'signature_stamp_path', 'is_active', 'purchase_prefix', 'sale_prefix',
         'purchase_year_format', 'purchase_sequence_length', 'purchase_sequence_start',
         'sale_year_format', 'sale_sequence_length', 'sale_sequence_start', 'bag_weight_kg', 'display_unit',
         'purchase_header_path', 'purchase_footer_path', 'sale_header_path', 'sale_footer_path',

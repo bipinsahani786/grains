@@ -127,6 +127,7 @@
             width: 50%;
             position: relative;
             padding: 5px 10px;
+            min-height: 100px;
         }
         .signatory-box .for-company {
             text-align: center;
@@ -203,64 +204,47 @@
 
         <div class="consignee-box">
             <h3>Details of Seller</h3>
-            <div class="details-grid">
-                <div class="details-row">
-                    <div class="details-cell label">Name :</div>
-                    <div class="details-cell value">{{ $purchase->party->name ?? 'Cash' }}</div>
-                    <div class="details-cell label" style="width:100px; padding-left:20px;">Broker Name :</div>
-                    <div class="details-cell value">{{ $purchase->broker->name ?? 'N/A' }}</div>
-                </div>
-                <div class="details-row">
-                    <div class="details-cell label">Address :</div>
-                    <div class="details-cell value" colspan="3">{{ $purchase->party->address ?? 'N/A' }}</div>
-                </div>
-                <div class="details-row">
-                    <div class="details-cell label">GST No. :</div>
-                    <div class="details-cell value">{{ $purchase->party->gst_no ?? 'N/A' }}</div>
-                </div>
-            </div>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="width: 80px; vertical-align: top; font-size: 14px; padding: 2px 0;">Name :</td>
+                    <td style="border-bottom: 1px dotted #000; vertical-align: top; font-size: 14px; padding: 2px 0;">{{ $purchase->party->name ?? 'Cash' }}</td>
+                </tr>
+                <tr>
+                    <td style="width: 80px; vertical-align: top; font-size: 14px; padding: 2px 0;">Address :</td>
+                    <td style="border-bottom: 1px dotted #000; vertical-align: top; font-size: 14px; padding: 2px 0;">{{ $purchase->party->address ?? 'N/A' }}</td>
+                </tr>
+                <tr>
+                    <td style="width: 80px; vertical-align: top; font-size: 14px; padding: 2px 0;">GST No. :</td>
+                    <td style="border-bottom: 1px dotted #000; vertical-align: top; font-size: 14px; padding: 2px 0;">{{ $purchase->party->gst_no ?? 'N/A' }}</td>
+                </tr>
+            </table>
         </div>
 
         <table class="items-table">
             <thead>
                 <tr>
-                    <th rowspan="2" style="width:50px;">Sl. No.</th>
-                    <th rowspan="2">PARTICULARS</th>
-                    <th rowspan="2" style="width:80px;">HSN</th>
-                    <th rowspan="2" style="width:60px;">Bags</th>
-                    <th colspan="2">Weight</th>
-                    <th rowspan="2" style="width:80px;">RATE<br>({{ $purchase->unit }})</th>
-                    <th rowspan="2" style="width:100px;">Amount<br>Rs.</th>
-                </tr>
-                <tr>
-                    <th style="width:60px;">QUN.</th>
-                    <th style="width:60px;">KG</th>
+                    <th style="width:50px;">Sl. No.</th>
+                    <th>PARTICULARS</th>
+                    <th style="width:120px;">Quantity</th>
+                    <th style="width:100px;">RATE</th>
+                    <th style="width:120px;">Amount<br>Rs.</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($purchase->items as $index => $item)
                     <tr>
                         <td>{{ $index + 1 }}</td>
-                        <td class="left"><strong>{{ $item->grain->name ?? 'N/A' }}</strong></td>
-                        <td></td>
-                        <td>{{ $item->unit == 'Bags' ? $item->quantity : '-' }}</td>
+                        <td class="left">
+                            <strong>{{ $item->grain->name ?? 'N/A' }}</strong>
+                            @if($item->unit == 'Bags' && $item->quantity)
+                            <br><small>({{ $item->quantity }} Bags)</small>
+                            @endif
+                        </td>
                         
-                        @php
-                            $qtl = 0; $kg = 0;
-                            if($item->unit == 'Quintal') {
-                                $qtl = $item->quantity;
-                            } elseif($item->unit == 'Kg') {
-                                $kg = $item->quantity;
-                            } elseif($item->unit == 'Ton') {
-                                $qtl = $item->quantity * 10;
-                            }
-                        @endphp
+                        <td>@qty($item->quantity)</td>
                         
-                        <td>{{ $qtl > 0 ? number_format($qtl, 2) : '-' }}</td>
-                        <td>{{ $kg > 0 ? number_format($kg, 2) : '-' }}</td>
-                        
-                        <td>{{ number_format($item->rate, 2) }}</td>
-                        <td class="right">{{ number_format($item->amount, 2) }}</td>
+                        <td class="right">@rateRaw($item->rate)</td>
+                        <td class="right">{{ number_format($item->quantity * $item->rate, 2) }}</td>
                     </tr>
                 @endforeach
                 
@@ -268,15 +252,41 @@
                     <!-- Empty rows to fill space if there are few items -->
                     @for($i = $purchase->items->count() + 1; $i <= 4; $i++)
                     <tr style="height: 30px;">
-                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        <td></td><td></td><td></td><td></td><td></td>
                     </tr>
                     @endfor
                 @endif
                 
                 <tr class="totals-row">
-                    <td colspan="7" class="right" style="font-size:16px;"><strong>Net Amount :</strong></td>
+                    <td colspan="4" class="right" style="font-size:16px;"><strong>Net Amount :</strong></td>
                     <td class="right" style="font-size:16px;"><strong>{{ number_format($purchase->total_amount, 2) }}</strong></td>
                 </tr>
+                
+                @if(isset($purchase->payments) && $purchase->payments->count() > 0)
+                    <tr style="background-color: #f9f9f9;">
+                        <td colspan="4" class="right" style="font-size:12px; padding: 2px 5px;">
+                            <strong>Payments Received:</strong>
+                            @foreach($purchase->payments as $payment)
+                                <br>{{ ucfirst($payment->mode) }}: 
+                            @endforeach
+                        </td>
+                        <td class="right" style="font-size:12px; padding: 2px 5px;">
+                            <br>
+                            @foreach($purchase->payments as $payment)
+                                {{ number_format($payment->amount, 2) }}<br>
+                            @endforeach
+                        </td>
+                    </tr>
+                    <tr class="totals-row">
+                        <td colspan="4" class="right" style="font-size:14px; color: #d9534f;"><strong>Balance Due :</strong></td>
+                        <td class="right" style="font-size:14px; color: #d9534f;"><strong>{{ number_format($purchase->total_amount - $purchase->payments->sum('amount'), 2) }}</strong></td>
+                    </tr>
+                @else
+                    <tr class="totals-row">
+                        <td colspan="4" class="right" style="font-size:14px; color: #d9534f;"><strong>Balance Due :</strong></td>
+                        <td class="right" style="font-size:14px; color: #d9534f;"><strong>{{ number_format($purchase->total_amount, 2) }}</strong></td>
+                    </tr>
+                @endif
             </tbody>
         </table>
         
@@ -288,20 +298,22 @@
         </div>
 
         <div class="footer-section">
-            <div class="bank-details">
-                <h4>Bank Details:</h4>
-                <div style="white-space: pre-wrap; font-size: 13px;">{{ $company->billing_bank_details ?? "Bank: \nA/C Holder Name: \nA/C No: \nIFSC Code: " }}</div>
-                
+            <div class="bank-details" style="border-right: none;">
                 @if($company->billing_terms_conditions)
-                <div class="terms" style="margin-top: 10px;">
+                <div class="terms" style="margin-top: 10px; border-top: none;">
                     <strong>Term & Conditions</strong><br>
                     <div style="white-space: pre-wrap;">{{ $company->billing_terms_conditions }}</div>
                 </div>
                 @endif
             </div>
             <div class="signatory-box">
-                <div class="for-company">For, {{ $company->name }}</div>
-                <div class="auth-sign">{{ $company->billing_authorised_signatory_text ?? 'Authorised Signatory' }}</div>
+                <div class="for-company" style="text-align: right;">For, {{ $company->name }}</div>
+                <div class="auth-sign">
+                    @if($company->signature_stamp_path)
+                        <img src="{{ asset('storage/' . $company->signature_stamp_path) }}" alt="Signature" style="max-height: 50px; display: block; margin: 5px 0 5px auto;">
+                    @endif
+                    {{ $company->billing_authorised_signatory_text ?? 'Authorised Signatory' }}
+                </div>
             </div>
         </div>
 

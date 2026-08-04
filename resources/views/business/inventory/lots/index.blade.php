@@ -137,7 +137,7 @@
                                             <td>{{ $lot->grain->name ?? 'N/A' }}</td>
                                             <td>@qtyRaw($lot->initial_quantity) @unitLabel</td>
                                             <td class="fw-bold {{ $lot->status == 'open' ? 'text-primary' : '' }}">@qtyRaw($lot->remaining_quantity) @unitLabel</td>
-                                            <td>₹{{ number_format($lot->rate, 2) }}</td>
+                                            <td>₹@rateRaw($lot->rate) / @unitLabel</td>
                                             <td>{{ $lot->created_at->format('d M, Y') }}</td>
                                         </tr>
                                     @empty

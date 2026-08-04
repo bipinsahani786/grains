@@ -56,4 +56,9 @@ class Purchase extends Model
     {
         return $this->hasMany(PurchaseCharge::class, 'purchase_id');
     }
+
+    public function payments()
+    {
+        return $this->morphMany(Payment::class, 'related');
+    }
 }
