@@ -19,7 +19,9 @@ class SettingController extends Controller
         $request->validate([
             'brand_name' => 'nullable|string|max:100',
             'gstin' => 'nullable|string|max:20',
+            'pan_no' => 'nullable|string|max:20',
             'phone' => 'nullable|string|max:20',
+            'whatsapp_no' => 'nullable|string|max:20',
             'address' => 'nullable|string',
             'logo' => 'nullable|image|max:2048',
             'favicon' => 'nullable|image|max:1024',
@@ -43,12 +45,21 @@ class SettingController extends Controller
             'billing_terms_conditions' => 'nullable|string',
             'billing_bank_details' => 'nullable|string',
             'billing_authorised_signatory_text' => 'nullable|string|max:100',
+            'signature_stamp' => 'nullable|image|max:2048',
+            'bank_name' => 'nullable|string|max:100',
+            'account_holder' => 'nullable|string|max:100',
+            'account_no' => 'nullable|string|max:50',
+            'ifsc_code' => 'nullable|string|max:20',
+            'branch_name' => 'nullable|string|max:100',
+            'upi_id' => 'nullable|string|max:100',
         ]);
 
         $company = Auth::user()->company;
         $company->brand_name = $request->brand_name;
         $company->gstin = $request->gstin;
+        $company->pan_no = $request->pan_no;
         $company->phone = $request->phone;
+        $company->whatsapp_no = $request->whatsapp_no;
         $company->address = $request->address;
         
         $company->purchase_prefix = $request->purchase_prefix ?? '';
@@ -66,6 +77,13 @@ class SettingController extends Controller
         $company->billing_terms_conditions = $request->billing_terms_conditions;
         $company->billing_bank_details = $request->billing_bank_details;
         $company->billing_authorised_signatory_text = $request->billing_authorised_signatory_text ?? 'Authorised Signatory';
+        
+        $company->bank_name = $request->bank_name;
+        $company->account_holder = $request->account_holder;
+        $company->account_no = $request->account_no;
+        $company->ifsc_code = $request->ifsc_code;
+        $company->branch_name = $request->branch_name;
+        $company->upi_id = $request->upi_id;
 
         if ($request->hasFile('logo')) {
             $company->logo_path = $request->file('logo')->store('company_billing', 'public');
@@ -84,6 +102,11 @@ class SettingController extends Controller
         }
         if ($request->hasFile('sale_footer')) {
             $company->sale_footer_path = $request->file('sale_footer')->store('company_billing', 'public');
+        }
+        if ($request->hasFile('signature_stamp')) {
+            $company->signature_stamp_path = $request->file('signature_stamp')->store('company_billing', 'public');
+        } elseif ($request->filled('remove_signature_stamp')) {
+            $company->signature_stamp_path = null;
         }
 
         $company->save();

@@ -35,12 +35,12 @@
     <div class="page-header">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
-                <h5 class="m-b-10">New Sale</h5>
+                <h5 class="m-b-10">Edit Sale #{{ $sale->sale_no }}</h5>
             </div>
             <ul class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ route('business.dashboard') }}">Home</a></li>
                 <li class="breadcrumb-item"><a href="{{ route('business.sales.index') }}">Sales</a></li>
-                <li class="breadcrumb-item">New Sale</li>
+                <li class="breadcrumb-item">Edit #{{ $sale->sale_no }}</li>
             </ul>
         </div>
     </div>
@@ -61,23 +61,24 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('business.sales.store') }}" method="POST" id="saleForm">
+                        <form action="{{ route('business.sales.update', $sale->id) }}" method="POST" id="saleForm">
                             @csrf
+                            @method('PUT')
 
                             {{-- SECTION 1: MASTER DETAILS --}}
                             <p class="section-label">1. Master Details</p>
                             <div class="row mb-2">
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="date">Sale Date <span class="text-danger">*</span></label>
-                                    <input type="date" class="form-control" id="date" name="date" value="{{ old('date', date('Y-m-d')) }}" required>
+                                    <input type="date" class="form-control" id="date" name="date" value="{{ old('date', $sale->date) }}" required>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="sale_time">Time <span class="text-danger">*</span></label>
-                                    <input type="time" class="form-control" id="sale_time" name="sale_time" value="{{ old('sale_time', date('H:i')) }}" required>
+                                    <input type="time" class="form-control" id="sale_time" name="sale_time" value="{{ old('sale_time', $sale->sale_time ? \Carbon\Carbon::parse($sale->sale_time)->format('H:i') : '') }}" required>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="po_no">PO No. / Order Ref. <small class="text-muted">(Optional)</small></label>
-                                    <input type="text" class="form-control" id="po_no" name="po_no" value="{{ old('po_no') }}" placeholder="e.g. PO-8921">
+                                    <input type="text" class="form-control" id="po_no" name="po_no" value="{{ old('po_no', $sale->po_no) }}" placeholder="e.g. PO-8921">
                                 </div>
                             </div>
 
@@ -87,8 +88,8 @@
                                     <div class="input-group">
                                         <select class="form-select select2-party" id="party_id" name="party_id" required>
                                             <option value="">Select Party</option>
-                                            @foreach($customers as $customer)
-                                                <option value="{{ $customer->id }}" data-phone="{{ $customer->phone ?? '' }}" data-address="{{ $customer->address ?? '' }}" {{ old('party_id') == $customer->id ? 'selected' : '' }}>{{ $customer->name }}</option>
+                                            @foreach($parties as $party)
+                                                <option value="{{ $party->id }}" data-phone="{{ $party->phone ?? '' }}" data-address="{{ $party->address ?? '' }}" data-type="{{ $party->partyType->name ?? '' }}" data-balance="{{ $party->current_balance ?? 0 }}" {{ old('party_id', $sale->party_id) == $party->id ? 'selected' : '' }}>{{ $party->name }}</option>
                                             @endforeach
                                         </select>
                                         <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createPartyModal" title="Add New Party"><i class="feather-plus"></i></button>
@@ -100,7 +101,7 @@
                                         <select class="form-select select2-broker" id="broker_id" name="broker_id">
                                             <option value="">No Broker</option>
                                             @foreach($brokers as $broker)
-                                                <option value="{{ $broker->id }}" data-phone="{{ $broker->phone ?? '' }}" data-address="{{ $broker->address ?? '' }}" {{ old('broker_id') == $broker->id ? 'selected' : '' }}>{{ $broker->name }}</option>
+                                                <option value="{{ $broker->id }}" data-phone="{{ $broker->phone ?? '' }}" data-address="{{ $broker->address ?? '' }}" {{ old('broker_id', $sale->broker_id) == $broker->id ? 'selected' : '' }}>{{ $broker->name }}</option>
                                             @endforeach
                                         </select>
                                         <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createBrokerModal" title="Add New Broker"><i class="feather-plus"></i></button>
@@ -133,37 +134,43 @@
                                 <span class="fifo-badge ms-2">FIFO Auto-fill</span>
                             </div>
 
+                            <?php
+                                $bagWeight = $company->bag_weight_kg ?? 50;
+                                $displayQty = \App\Helpers\UnitHelper::fromQtl($sale->quantity, $sale->unit ?? 'Quintal', $bagWeight);
+                                $displayRate = \App\Helpers\UnitHelper::rateFromQtl($sale->rate, $sale->unit ?? 'Quintal', $bagWeight);
+                            ?>
+
                             <div class="row mb-3">
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label" for="grain_id">Grain <span class="text-danger">*</span></label>
                                     <select class="form-select" id="grain_id" name="grain_id" required onchange="fetchLotInfo()">
                                         <option value="">Select Grain</option>
                                         @foreach($grains as $grain)
-                                            <option value="{{ $grain->id }}" {{ old('grain_id') == $grain->id ? 'selected' : '' }}>{{ $grain->name }}</option>
+                                            <option value="{{ $grain->id }}" {{ old('grain_id', $sale->grain_id) == $grain->id ? 'selected' : '' }}>{{ $grain->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label">Total Quantity <span class="text-danger">*</span></label>
                                     <div class="input-group">
-                                        <input type="number" step="0.01" min="0.01" class="form-control" id="quantity" name="quantity" value="{{ old('quantity') }}" placeholder="Qty" required oninput="onMainQtyChange()">
+                                        <input type="number" step="0.01" min="0.01" class="form-control" id="quantity" name="quantity" value="{{ old('quantity', round($displayQty, 4)) }}" placeholder="Qty" required oninput="onMainQtyChange()">
                                         <select class="form-select" id="unit" name="unit" style="max-width: 110px;" required onchange="onQtyUnitChange()">
-                                            <option value="Quintal" {{ old('unit','Quintal')=='Quintal'?'selected':'' }}>Quintal</option>
-                                            <option value="Kg"      {{ old('unit')=='Kg'?'selected':'' }}>Kg</option>
-                                            <option value="Ton"     {{ old('unit')=='Ton'?'selected':'' }}>Ton</option>
-                                            <option value="Bags"    {{ old('unit')=='Bags'?'selected':'' }}>Bags</option>
+                                            <option value="Quintal" {{ old('unit', $sale->unit) == 'Quintal' ? 'selected' : '' }}>Quintal</option>
+                                            <option value="Kg" {{ old('unit', $sale->unit) == 'Kg' ? 'selected' : '' }}>Kg</option>
+                                            <option value="Ton" {{ old('unit', $sale->unit) == 'Ton' ? 'selected' : '' }}>Ton</option>
+                                            <option value="Bags" {{ old('unit', $sale->unit) == 'Bags' ? 'selected' : '' }}>Bags</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-md-2 mb-3">
                                     <label class="form-label" for="bags_count">No. of Bags <small class="text-muted">(Optional)</small></label>
-                                    <input type="number" min="0" class="form-control" id="bags_count" name="bags_count" value="{{ old('bags_count') }}" placeholder="e.g. 50">
+                                    <input type="number" min="0" class="form-control" id="bags_count" name="bags_count" value="{{ old('bags_count', $sale->bags_count) }}" placeholder="e.g. 50">
                                 </div>
                                 <div class="col-md-2 mb-3">
                                     <label class="form-label" for="rate">Rate (per unit) <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text">₹</span>
-                                        <input type="number" step="0.01" min="0" class="form-control" id="rate" name="rate" value="{{ old('rate') }}" placeholder="0.00" required oninput="recalculate()">
+                                        <input type="number" step="0.01" min="0" class="form-control" id="rate" name="rate" value="{{ old('rate', round($displayRate, 4)) }}" placeholder="0.00" required oninput="recalculate()">
                                     </div>
                                 </div>
                                 <div class="col-md-2 mb-3 d-flex align-items-end">
@@ -265,17 +272,17 @@
                                 {{-- SECTION 4: PAYMENT MODE --}}
                                 <div class="col-md-6">
                                     <p class="section-label mb-3">4. Recovery / Payment Mode</p>
-                                    <input type="hidden" name="payment_mode" id="payment_mode" value="regular">
+                                    <input type="hidden" id="payment_mode" name="payment_mode" value="{{ old('payment_mode', $sale->payment_mode ?? 'regular') }}">
                                     <div class="row g-3 mb-3">
                                         <div class="col-6">
-                                            <div class="payment-mode-card active" id="card_regular" onclick="setPaymentMode('regular')">
+                                            <div class="payment-mode-card {{ old('payment_mode', $sale->payment_mode ?? 'regular') == 'regular' ? 'active' : '' }}" id="card_regular" onclick="setPaymentMode('regular')">
                                                 <div class="mode-icon">📅</div>
                                                 <div class="fw-bold mt-1">Regular Mode</div>
                                                 <small class="text-muted">Recover later (40-50 days). Full amount goes to ledger.</small>
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <div class="payment-mode-card" id="card_cash_discount" onclick="setPaymentMode('cash_discount')">
+                                            <div class="payment-mode-card {{ old('payment_mode', $sale->payment_mode ?? 'regular') == 'cash_discount' ? 'active' : '' }}" id="card_cash_discount" onclick="setPaymentMode('cash_discount')">
                                                 <div class="mode-icon">⚡</div>
                                                 <div class="fw-bold mt-1">Cash Discount</div>
                                                 <small class="text-muted">Instant recovery — cut % and settle now.</small>
@@ -284,10 +291,10 @@
                                     </div>
 
                                     {{-- Discount % (only for cash_discount) --}}
-                                    <div id="discountSection" class="d-none mb-3">
-                                        <label class="form-label">Discount % <span class="text-danger">*</span></label>
+                                    <div id="discountSection" class="{{ old('payment_mode', $sale->payment_mode ?? 'regular') == 'cash_discount' ? '' : 'd-none' }} mb-3">
+                                        <label class="form-label">Discount (%)</label>
                                         <div class="input-group" style="max-width: 200px;">
-                                            <input type="number" step="0.01" min="0" max="100" class="form-control" id="discount_percent" name="discount_percent" value="{{ old('discount_percent', 0) }}" placeholder="e.g. 2" oninput="recalculate()">
+                                            <input type="number" step="0.01" min="0" max="100" class="form-control" id="discount_percent" name="discount_percent" value="{{ old('discount_percent', $sale->discount_percent ?? 0) }}" placeholder="e.g. 2" oninput="recalculate()">
                                             <span class="input-group-text">%</span>
                                         </div>
                                     </div>
@@ -313,35 +320,35 @@
                             <div class="row mb-3">
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="truck_no">Truck / Vehicle No.</label>
-                                    <input type="text" class="form-control text-uppercase" id="truck_no" name="truck_no" value="{{ old('truck_no') }}" placeholder="e.g. BR-01-GB-4589">
+                                    <input type="text" class="form-control text-uppercase" id="truck_no" name="truck_no" value="{{ old('truck_no', $sale->truck_no) }}" placeholder="e.g. BR-01-GB-4589">
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="driver_name">Driver Name</label>
-                                    <input type="text" class="form-control" id="driver_name" name="driver_name" value="{{ old('driver_name') }}" placeholder="e.g. Ramesh Kumar">
+                                    <input type="text" class="form-control" id="driver_name" name="driver_name" value="{{ old('driver_name', $sale->driver_name) }}" placeholder="e.g. Ramesh Kumar">
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="driver_phone">Driver Mobile No.</label>
-                                    <input type="text" class="form-control" id="driver_phone" name="driver_phone" value="{{ old('driver_phone') }}" placeholder="e.g. 9876543210">
+                                    <input type="text" class="form-control" id="driver_phone" name="driver_phone" value="{{ old('driver_phone', $sale->driver_phone) }}" placeholder="e.g. 9876543210">
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="truck_fare">Total Truck Fare (₹)</label>
                                     <div class="input-group">
                                         <span class="input-group-text">₹</span>
-                                        <input type="number" step="0.01" min="0" class="form-control" id="truck_fare" name="truck_fare" value="{{ old('truck_fare') }}" placeholder="0.00" oninput="calcFreightBalance()">
+                                        <input type="number" step="0.01" min="0" class="form-control" id="truck_fare" name="truck_fare" value="{{ old('truck_fare', $sale->truck_fare) }}" placeholder="0.00" oninput="calcFreightBalance()">
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="freight_advance">Advance Paid to Driver (₹)</label>
                                     <div class="input-group">
                                         <span class="input-group-text">₹</span>
-                                        <input type="number" step="0.01" min="0" class="form-control" id="freight_advance" name="freight_advance" value="{{ old('freight_advance') }}" placeholder="0.00" oninput="calcFreightBalance()">
+                                        <input type="number" step="0.01" min="0" class="form-control" id="freight_advance" name="freight_advance" value="{{ old('freight_advance', $sale->freight_advance) }}" placeholder="0.00" oninput="calcFreightBalance()">
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="freight_balance">Balance Truck Fare Due (₹)</label>
                                     <div class="input-group">
                                         <span class="input-group-text">₹</span>
-                                        <input type="number" step="0.01" class="form-control bg-light" id="freight_balance" name="freight_balance" value="{{ old('freight_balance') }}" placeholder="0.00" readonly>
+                                        <input type="number" step="0.01" class="form-control bg-light" id="freight_balance" name="freight_balance" value="{{ old('freight_balance', $sale->freight_balance) }}" placeholder="0.00" readonly>
                                     </div>
                                 </div>
                             </div>
@@ -352,38 +359,38 @@
                             <div class="row mb-4">
                                 <div class="col-md-7">
                                     <label class="form-label">Notes</label>
-                                    <textarea class="form-control" name="notes" rows="3" placeholder="Optional notes...">{{ old('notes') }}</textarea>
+                                    <textarea class="form-control" name="notes" rows="3" placeholder="Optional notes...">{{ old('notes', $sale->notes) }}</textarea>
                                 </div>
                                 <div class="col-md-5">
                                     <div class="summary-card p-3">
                                         <p class="section-label mb-2">Order Summary</p>
                                         <div class="summary-row">
-                                            <span>Items Total:</span>
-                                            <span id="sum_items">₹0.00</span>
+                                             <span>Items Total:</span>
+                                             <span id="sum_items">₹0.00</span>
                                         </div>
                                         <div class="summary-row">
-                                            <span>Add-on Charges:</span>
-                                            <span id="sum_charges">₹0.00</span>
+                                             <span>Add-on Charges:</span>
+                                             <span id="sum_charges">₹0.00</span>
                                         </div>
                                         <div class="summary-row total">
-                                            <span>Grand Total:</span>
-                                            <span id="sum_grand">₹0.00</span>
+                                             <span>Grand Total:</span>
+                                             <span id="sum_grand">₹0.00</span>
                                         </div>
                                         <div class="summary-row discount" id="sum_discount_row" style="display:none!important;">
-                                            <span>Discount (<span id="sum_disc_pct">0</span>%):</span>
-                                            <span id="sum_discount">-₹0.00</span>
+                                             <span>Discount (<span id="sum_disc_pct">0</span>%):</span>
+                                             <span id="sum_discount">-₹0.00</span>
                                         </div>
                                         <div class="summary-row net" id="sum_net_row" style="display:none!important;">
-                                            <span>Net Receivable:</span>
-                                            <span id="sum_net">₹0.00</span>
+                                             <span>Net Receivable:</span>
+                                             <span id="sum_net">₹0.00</span>
                                         </div>
                                         <div class="summary-row">
-                                            <span>Amount Paid:</span>
-                                            <span id="sum_paid" class="text-success">₹0.00</span>
+                                             <span>Amount Paid:</span>
+                                             <span id="sum_paid" class="text-success">₹0.00</span>
                                         </div>
                                         <div class="summary-row outstanding">
-                                            <span>Outstanding:</span>
-                                            <span id="sum_outstanding">₹0.00</span>
+                                             <span>Outstanding:</span>
+                                             <span id="sum_outstanding">₹0.00</span>
                                         </div>
                                     </div>
                                 </div>
@@ -394,7 +401,7 @@
                                     <i class="feather-x-circle me-2"></i> Cancel
                                 </a>
                                 <button type="button" class="btn btn-success px-5 py-2 fw-bolder text-uppercase" style="min-width: 200px;" onclick="submitSaleForm()">
-                                    <i class="feather-check-circle me-2"></i> Save Sale
+                                    <i class="feather-check-circle me-2"></i> Update Sale
                                 </button>
                             </div>
                         </form>
@@ -587,6 +594,7 @@ $(document).ready(function() {
         }
         updateDetailsRow();
     });
+
     $('.select2-broker').select2({ templateResult: formatUser, templateSelection: formatSelection }).on('select2:select', function (e) {
         var data = e.params.data;
         if (data.id) {
@@ -602,6 +610,25 @@ $(document).ready(function() {
         }
         updateDetailsRow();
     });
+
+    // Check initial party/broker selection for address display
+    var initPartySelected = $('.select2-party').find(':selected');
+    if (initPartySelected.length && initPartySelected.val()) {
+        var partyAddr = initPartySelected.data('address');
+        if (partyAddr && partyAddr.trim() !== '' && partyAddr.trim() !== 'N/A') {
+            $('#partyDetailsAddress').text(partyAddr);
+            $('#partyDetailsCol').show();
+        }
+    }
+    var initBrokerSelected = $('.select2-broker').find(':selected');
+    if (initBrokerSelected.length && initBrokerSelected.val()) {
+        var brokerAddr = initBrokerSelected.data('address');
+        if (brokerAddr && brokerAddr.trim() !== '' && brokerAddr.trim() !== 'N/A') {
+            $('#brokerDetailsAddress').text(brokerAddr);
+            $('#brokerDetailsCol').show();
+        }
+    }
+    updateDetailsRow();
 
     // Party AJAX create
     $('#ajaxCreatePartyForm').on('submit', function(e) {
@@ -654,7 +681,7 @@ $(document).ready(function() {
 
 // =============== LOT ALLOCATION SYSTEM ===============
 var _lotsCache = [];
-var BAG_WEIGHT_KG = 50;
+var BAG_WEIGHT_KG = {{ $company->bag_weight_kg ?? 50 }};
 
 // Convert from Quintal to selected unit
 function qtlToUnit(qtl, unit) {
@@ -673,10 +700,6 @@ function unitToQtl(qty, unit) {
     return qty; // Quintal
 }
 
-function unitLabel(unit) {
-    return unit || 'Quintal';
-}
-
 function fetchLotInfo() {
     var grainId = $('#grain_id').val();
     if (!grainId) {
@@ -688,7 +711,7 @@ function fetchLotInfo() {
     $.ajax({
         url: "{{ url('/business/api/lots') }}",
         method: 'GET',
-        data: { grain_id: grainId },
+        data: { grain_id: grainId, sale_id: '{{ $sale->id }}' },
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
         success: function(data) {
             if (data.error) {
@@ -710,7 +733,7 @@ function fetchLotInfo() {
                 return;
             }
             $('#lotSectionWrapper').removeClass('d-none');
-            renderLotTable(false);
+            renderLotTable(null);
         },
         error: function(xhr) {
             $('#lotSectionWrapper').addClass('d-none');
@@ -729,15 +752,12 @@ function onMainQtyChange() {
 
 function onQtyUnitChange() {
     recalculate();
-    // Update total stock display in new unit
     if (_lotsCache.length > 0) {
         var unit = $('#unit').val() || 'Quintal';
         var totalQtl = _lotsCache.reduce(function(s, l) { return s + parseFloat(l.remaining_quantity); }, 0);
         $('#totalStockDisplay').text(qtlToUnit(totalQtl, unit).toFixed(2) + ' ' + unit);
-        // Update column header unit labels
         $('.lot-unit-label').text(unit);
-        // Re-render table with updated unit columns
-        renderLotTable(null); // null = keep existing user inputs
+        renderLotTable(null);
     }
     updateAllocationStatus();
 }
@@ -747,7 +767,6 @@ function renderLotTable(doAutoFifo) {
     $('.lot-unit-label').text(unit);
 
     var body = $('#lotTableBody');
-    // Save existing user inputs before re-rendering
     var existingInputs = {};
     body.find('input.lot-take-qty').each(function() {
         existingInputs[$(this).data('lot-id')] = $(this).val();
@@ -759,9 +778,15 @@ function renderLotTable(doAutoFifo) {
         var qtlAvail    = parseFloat(lot.remaining_quantity);
         var unitAvail   = qtlToUnit(qtlAvail, unit);
 
-        var existingVal = (doAutoFifo === null && existingInputs[lot.id] !== undefined) ? existingInputs[lot.id] : '';
-        var remainingQtlAfter = qtlAvail; // will be updated by JS
-        var unitAfter   = qtlToUnit(remainingQtlAfter, unit);
+        var existingVal = '';
+        if (doAutoFifo === null && existingInputs[lot.id] !== undefined) {
+            existingVal = existingInputs[lot.id];
+        } else if (doAutoFifo === null && window.oldAllocations && window.oldAllocations[lot.id] !== undefined) {
+            var allocQtl = parseFloat(window.oldAllocations[lot.id]);
+            var allocUnit = qtlToUnit(allocQtl, unit);
+            existingVal = allocUnit > 0 ? allocUnit.toFixed(2) : '';
+            delete window.oldAllocations[lot.id];
+        }
 
         var row = `<tr id="lot_row_${lot.id}" class="lot-row">
             <td><span class="badge" style="background:rgba(102,126,234,0.15); color:#667eea; font-size:0.8rem;">${lot.lot_no}</span></td>
@@ -790,6 +815,17 @@ function renderLotTable(doAutoFifo) {
     if (doAutoFifo === true) {
         autoFifo();
     } else {
+        body.find('input.lot-take-qty').each(function() {
+            if ($(this).val()) {
+                var lotQtl = parseFloat($(this).data('lot-qtl'));
+                var takeInUnit = parseFloat($(this).val()) || 0;
+                var takeInQtl  = unitToQtl(takeInUnit, unit);
+                var remainingQtl = lotQtl - takeInQtl;
+                var remainingUnit = qtlToUnit(remainingQtl, unit);
+                var lotId = $(this).data('lot-id');
+                $('#lot_remaining_' + lotId).text(remainingUnit.toFixed(2) + ' ' + unit);
+            }
+        });
         updateAllocationStatus();
     }
 }
@@ -801,20 +837,16 @@ function onLotInputChange(input) {
     var takeInUnit = parseFloat($(input).val()) || 0;
     var takeInQtl  = unitToQtl(takeInUnit, unit);
 
-    // Cap at available
     if (takeInQtl > lotQtl) {
         var maxInUnit = qtlToUnit(lotQtl, unit);
         $(input).val(maxInUnit.toFixed(2));
         takeInQtl = lotQtl;
-        takeInUnit = parseFloat($(input).val()) || 0;
     }
 
-    // Update "Remaining After" cell
     var remainingQtl  = lotQtl - takeInQtl;
     var remainingUnit = qtlToUnit(remainingQtl, unit);
     $('#lot_remaining_' + lotId).text(remainingUnit.toFixed(2) + ' ' + unit);
 
-    // ── Sync total lot qty → main quantity field ───────────────────────
     syncLotTotalToQty();
 }
 
@@ -824,7 +856,6 @@ function syncLotTotalToQty() {
     $('.lot-take-qty').each(function() {
         totalTakenUnit += parseFloat($(this).val()) || 0;
     });
-    // Set the main quantity field to sum of lots (in current unit)
     $('#quantity').val(totalTakenUnit > 0 ? totalTakenUnit.toFixed(2) : '');
     updateAllocationStatus();
     recalculate();
@@ -837,7 +868,6 @@ function updateAllocationStatus() {
         totalTakenQtl += unitToQtl(parseFloat($(this).val()) || 0, unit);
     });
 
-    // "Requested" is now driven by what's in the main qty field
     var requestedQtl = unitToQtl(parseFloat($('#quantity').val()) || 0, unit);
 
     $('#totalAllocated').text(qtlToUnit(totalTakenQtl, unit).toFixed(2));
@@ -869,7 +899,6 @@ function autoFifo() {
         $(this).val(takeUnit > 0 ? takeUnit.toFixed(2) : '');
         remaining -= takeQtl;
 
-        // Update remaining-after
         var lotId = $(this).data('lot-id');
         var remainingAfterQtl = lotQtl - takeQtl;
         $('#lot_remaining_' + lotId).text(qtlToUnit(remainingAfterQtl, unit).toFixed(2) + ' ' + unit);
@@ -909,18 +938,18 @@ function calcFreightBalance() {
 }
 
 // ---- Payments ----
-function addPaymentRow() {
+function addPaymentRow(mode = 'cash', amount = '') {
     var i = paymentIndex++;
     var row = `<tr id="payment_row_${i}">
         <td>
             <select name="payments[${i}][mode]" class="form-select form-select-sm">
-                <option value="cash">Cash</option>
-                <option value="upi">UPI</option>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="cheque">Cheque</option>
+                <option value="cash" ${mode === 'cash' ? 'selected' : ''}>Cash</option>
+                <option value="upi" ${mode === 'upi' ? 'selected' : ''}>UPI</option>
+                <option value="bank_transfer" ${mode === 'bank_transfer' ? 'selected' : ''}>Bank Transfer</option>
+                <option value="cheque" ${mode === 'cheque' ? 'selected' : ''}>Cheque</option>
             </select>
         </td>
-        <td><input type="number" step="0.01" min="0" name="payments[${i}][amount]" class="form-control form-control-sm payment-amount" placeholder="0.00" required oninput="recalculate()"></td>
+        <td><input type="number" step="0.01" min="0" name="payments[${i}][amount]" class="form-control form-control-sm payment-amount" placeholder="0.00" value="${amount}" required oninput="recalculate()"></td>
         <td><button type="button" class="btn btn-sm btn-light-danger" onclick="removeRow('payment_row_${i}');recalculate()"><i class="feather-trash-2"></i></button></td>
     </tr>`;
     $('#paymentsBody').append(row);
@@ -987,6 +1016,38 @@ function recalculate() {
 
     updateAllocationStatus();
 }
+
+// ---- Initialize Edit Data on Page Load ----
+$(document).ready(function() {
+    window.oldAllocations = {
+        @if(isset($sale->saleLotAllocations))
+            @foreach($sale->saleLotAllocations as $alloc)
+            '{{ $alloc->lot_id }}': {{ $alloc->quantity_taken }},
+            @endforeach
+        @endif
+    };
+
+    // Pre-load lots and trigger recalculate
+    if ($('#grain_id').val()) {
+        fetchLotInfo();
+    }
+    
+    // Inject old charges
+    @if(isset($sale->charges) && $sale->charges->count() > 0)
+        @foreach($sale->charges as $index => $charge)
+        addChargeRow({!! json_encode($charge->name) !!}, '{{ $charge->type }}', '{{ $charge->amount }}');
+        @endforeach
+    @endif
+
+    // Inject old payments
+    @if(isset($sale->payments) && $sale->payments->count() > 0)
+        @foreach($sale->payments as $index => $payment)
+        addPaymentRow('{{ $payment->mode }}', '{{ $payment->amount }}');
+        @endforeach
+    @endif
+
+    recalculate();
+});
 
 function submitSaleForm() {
     if (document.getElementById('saleForm').checkValidity()) {

@@ -7,5 +7,5 @@ use App\Traits\BelongsToTenant;
 
 class Grain extends Model
 {
-    protected $fillable = ['company_id', 'name', 'unit', 'opening_stock'];
+    protected $fillable = ['company_id', 'name', 'unit', 'hsn_code', 'opening_stock'];
 }

@@ -12,6 +12,7 @@ Route::prefix('business')->name('business.')->group(function () {
     Route::resource('godowns', \App\Http\Controllers\Business\GodownController::class);
     Route::resource('grains', \App\Http\Controllers\Business\GrainController::class);
     Route::get('/purchases/{purchase}/print', [\App\Http\Controllers\Business\PurchaseController::class, 'print'])->name('purchases.print');
+    Route::post('/purchases/{purchase}/pay', [\App\Http\Controllers\Business\PurchaseController::class, 'paySupplier'])->name('purchases.pay');
     Route::resource('purchases', \App\Http\Controllers\Business\PurchaseController::class);
     
     Route::get('/sales/{sale}/print', [\App\Http\Controllers\Business\SaleController::class, 'print'])->name('sales.print');

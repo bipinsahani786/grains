@@ -61,4 +61,31 @@ class Purchase extends Model
     {
         return $this->morphMany(Payment::class, 'related');
     }
+
+    /** Total paid = sum of payments */
+    public function getTotalPaidAttribute(): float
+    {
+        return (float) ($this->relationLoaded('payments') ? $this->payments->sum('amount') : $this->payments()->sum('amount'));
+    }
+
+    /** Outstanding Payable Due = total_amount - total_paid */
+    public function getRemainingOutstandingAttribute(): float
+    {
+        $total = (float) ($this->total_amount ?? 0);
+        return max(0, round($total - $this->total_paid, 2));
+    }
+
+    /** Payment Status: 'paid', 'partial', 'unpaid' */
+    public function getPaymentStatusAttribute(): string
+    {
+        $total = (float) ($this->total_amount ?? 0);
+        $paid = $this->total_paid;
+        if ($total > 0 && $paid >= $total - 0.01) {
+            return 'paid';
+        } elseif ($paid > 0.01) {
+            return 'partial';
+        } else {
+            return 'unpaid';
+        }
+    }
 }

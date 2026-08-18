@@ -51,6 +51,7 @@
                                 <thead>
                                     <tr>
                                         <th>Grain Name</th>
+                                        <th>HSN Code</th>
                                         <th>Unit</th>
                                         <th>Opening Stock</th>
                                         <th class="text-end">Actions</th>
@@ -69,6 +70,7 @@
                                                     </div>
                                                 </div>
                                             </td>
+                                            <td><span class="badge bg-soft-info text-info">{{ $item->hsn_code ?? '—' }}</span></td>
                                             <td><span class="badge bg-soft-success text-success">{{ $item->unit }}</span></td>
                                             <td>{{ $item->opening_stock }} {{ $item->unit }}</td>
                                             <td class="text-end">
@@ -84,10 +86,9 @@
                                                 </div>
                                             </td>
                                         </tr>
-                                        </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="4" class="text-center py-4 text-muted">No grains found. Add your first grain!</td>
+                                            <td colspan="5" class="text-center py-4 text-muted">No grains found. Add your first grain!</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -119,6 +120,10 @@
                     <div class="mb-3">
                         <label class="form-label">Grain Name <span class="text-danger">*</span></label>
                         <input type="text" name="name" class="form-control" value="{{ $item->name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">HSN Code <small class="text-muted">(Optional, e.g. 1001 for Wheat)</small></label>
+                        <input type="text" name="hsn_code" class="form-control" value="{{ $item->hsn_code }}" placeholder="e.g. 1001">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Measurement Unit <span class="text-danger">*</span></label>
@@ -158,6 +163,10 @@
                     <div class="mb-3">
                         <label class="form-label">Grain Name <span class="text-danger">*</span></label>
                         <input type="text" name="name" class="form-control" value="{{ old('name') }}" placeholder="e.g. Wheat, Rice, Mustard" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">HSN Code <small class="text-muted">(Optional, e.g. 1001 for Wheat)</small></label>
+                        <input type="text" name="hsn_code" class="form-control" value="{{ old('hsn_code') }}" placeholder="e.g. 1001">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Measurement Unit <span class="text-danger">*</span></label>

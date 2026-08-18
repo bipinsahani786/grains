@@ -34,4 +34,14 @@ class Lot extends Model
     {
         return $this->belongsTo(Godown::class, 'godown_id');
     }
+
+    public function saleAllocations()
+    {
+        return $this->hasMany(SaleLotAllocation::class, 'lot_id');
+    }
+
+    public function saleLotAllocations()
+    {
+        return $this->hasMany(SaleLotAllocation::class, 'lot_id');
+    }
 }

@@ -32,6 +32,7 @@ class GrainController extends Controller
                 })
             ],
             'unit' => 'required|string|max:50',
+            'hsn_code' => 'nullable|string|max:50',
             'opening_stock' => 'nullable|numeric|min:0',
         ]);
 
@@ -39,6 +40,7 @@ class GrainController extends Controller
             'company_id' => auth()->user()->company_id,
             'name' => $request->name,
             'unit' => $request->unit,
+            'hsn_code' => $request->hsn_code,
             'opening_stock' => $request->opening_stock ?? 0,
         ]);
 
@@ -63,12 +65,14 @@ class GrainController extends Controller
                     ->ignore($grain->id)
             ],
             'unit' => 'required|string|max:50',
+            'hsn_code' => 'nullable|string|max:50',
             'opening_stock' => 'nullable|numeric|min:0',
         ]);
 
         $grain->update([
             'name' => $request->name,
             'unit' => $request->unit,
+            'hsn_code' => $request->hsn_code,
             'opening_stock' => $request->opening_stock ?? 0,
         ]);
 

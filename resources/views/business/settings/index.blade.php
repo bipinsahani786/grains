@@ -33,19 +33,27 @@
                             
                             <h6 class="mb-3 text-primary border-bottom pb-2">Company Profile & Whitelabel</h6>
                             <div class="row mb-3">
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 mb-3">
                                     <label class="form-label">Brand / Company Name</label>
                                     <input type="text" name="brand_name" class="form-control" value="{{ old('brand_name', $company->brand_name ?? $company->name) }}" placeholder="e.g. Acme Grains">
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 mb-3">
                                     <label class="form-label">GSTIN</label>
                                     <input type="text" name="gstin" class="form-control" value="{{ old('gstin', $company->gstin) }}" placeholder="e.g. 22AAAAA0000A1Z5">
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">PAN No.</label>
+                                    <input type="text" name="pan_no" class="form-control" value="{{ old('pan_no', $company->pan_no) }}" placeholder="e.g. ABCDE1234F">
+                                </div>
+                                <div class="col-md-4 mb-3">
                                     <label class="form-label">Phone No.</label>
                                     <input type="text" name="phone" class="form-control" value="{{ old('phone', $company->phone) }}" placeholder="e.g. 9876543210">
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">WhatsApp No.</label>
+                                    <input type="text" name="whatsapp_no" class="form-control" value="{{ old('whatsapp_no', $company->whatsapp_no) }}" placeholder="e.g. 9876543210">
+                                </div>
+                                <div class="col-md-4 mb-3">
                                     <label class="form-label">Address</label>
                                     <input type="text" name="address" class="form-control" value="{{ old('address', $company->address) }}" placeholder="e.g. 123 Main St, City">
                                 </div>
@@ -203,17 +211,71 @@
                                         <div class="mt-2"><img src="{{ Storage::url($company->sale_footer_path) }}" height="50" alt="Sale Footer" class="border"></div>
                                     @endif
                                 </div>
+                                <div class="col-12 mt-3 mb-2">
+                                    <h6 class="text-primary border-bottom pb-2"><i class="feather-credit-card me-1"></i> Bank Account Details (Printed on Invoices / Bills)</h6>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label text-muted fs-12 text-uppercase fw-bold">Bank Name</label>
+                                    <input type="text" name="bank_name" class="form-control" value="{{ old('bank_name', $company->bank_name) }}" placeholder="e.g. State Bank of India">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label text-muted fs-12 text-uppercase fw-bold">Account Holder Name</label>
+                                    <input type="text" name="account_holder" class="form-control" value="{{ old('account_holder', $company->account_holder ?? $company->name) }}" placeholder="e.g. Acme Grains Traders">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label text-muted fs-12 text-uppercase fw-bold">Account Number</label>
+                                    <input type="text" name="account_no" class="form-control" value="{{ old('account_no', $company->account_no) }}" placeholder="e.g. 123456789012">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label text-muted fs-12 text-uppercase fw-bold">IFSC Code</label>
+                                    <input type="text" name="ifsc_code" class="form-control" value="{{ old('ifsc_code', $company->ifsc_code) }}" placeholder="e.g. SBIN0001234" style="text-transform: uppercase;">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label text-muted fs-12 text-uppercase fw-bold">Branch Name (Optional)</label>
+                                    <input type="text" name="branch_name" class="form-control" value="{{ old('branch_name', $company->branch_name) }}" placeholder="e.g. Main Branch, Patna">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label text-muted fs-12 text-uppercase fw-bold">UPI ID (Optional)</label>
+                                    <input type="text" name="upi_id" class="form-control" value="{{ old('upi_id', $company->upi_id) }}" placeholder="e.g. business@upi">
+                                </div>
                                 <div class="col-md-12 mb-3">
-                                    <label class="form-label text-muted fs-12 text-uppercase fw-bold">Bank Details (For Bills)</label>
-                                    <textarea name="billing_bank_details" class="form-control" rows="4" placeholder="Bank Name: SBI&#10;Account Holder: ...&#10;Account No: ...&#10;IFSC: ...">{{ old('billing_bank_details', $company->billing_bank_details) }}</textarea>
+                                    <label class="form-label text-muted fs-12 text-uppercase fw-bold">Custom Bank Details Note (Overrides if specified)</label>
+                                    <textarea name="billing_bank_details" class="form-control" rows="2" placeholder="Leave empty to auto-generate from above fields.">{{ old('billing_bank_details', $company->billing_bank_details) }}</textarea>
+                                </div>
+
+                                <div class="col-12 mt-3 mb-2">
+                                    <h6 class="text-primary border-bottom pb-2"><i class="feather-file-text me-1"></i> Invoice Terms & Signatory</h6>
                                 </div>
                                 <div class="col-md-12 mb-3">
                                     <label class="form-label text-muted fs-12 text-uppercase fw-bold">Terms & Conditions</label>
-                                    <textarea name="billing_terms_conditions" class="form-control" rows="4" placeholder="1. Goods once sold will not be taken back.">{{ old('billing_terms_conditions', $company->billing_terms_conditions) }}</textarea>
+                                    <textarea name="billing_terms_conditions" class="form-control" rows="3" placeholder="1. Goods once sold will not be taken back.">{{ old('billing_terms_conditions', $company->billing_terms_conditions) }}</textarea>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label text-muted fs-12 text-uppercase fw-bold">Authorised Signatory Text</label>
-                                    <input type="text" name="billing_authorised_signatory_text" class="form-control" value="{{ old('billing_authorised_signatory_text', $company->billing_authorised_signatory_text ?? 'Authorised Signatory') }}">
+                                    <label class="form-label text-muted fs-12 text-uppercase fw-bold">Authorised Signatory Title Text</label>
+                                    <input type="text" name="billing_authorised_signatory_text" class="form-control" value="{{ old('billing_authorised_signatory_text', $company->billing_authorised_signatory_text ?? 'Authorised Signatory') }}" placeholder="e.g. Authorised Signatory">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted fs-12 text-uppercase fw-bold">Upload Digital Signature / Stamp (Printed on Bill)</label>
+                                    <input type="file" name="signature_stamp" class="form-control" accept="image/*">
+                                    @if(isset($company->signature_stamp_path) && $company->signature_stamp_path)
+                                        <div class="mt-2 p-2 border rounded d-flex align-items-center justify-content-between bg-light">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img src="{{ Storage::url($company->signature_stamp_path) }}" height="45" alt="Signature Stamp" class="border bg-white p-1 rounded">
+                                                <div>
+                                                    <span class="badge bg-soft-success text-success d-block mb-1">Signature Uploaded ✓</span>
+                                                    <small class="text-muted">Will print directly above signatory line.</small>
+                                                </div>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="remove_signature_stamp" value="1" id="removeSignatureCheck">
+                                                <label class="form-check-label text-danger small" for="removeSignatureCheck">
+                                                    Remove
+                                                </label>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <small class="text-muted fs-12">Upload PNG/JPG signature image (transparent PNG recommended).</small>
+                                    @endif
                                 </div>
                             </div>
 

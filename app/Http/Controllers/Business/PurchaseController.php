@@ -20,49 +20,167 @@ use Illuminate\Support\Facades\Auth;
 
 class PurchaseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $companyId = Auth::user()->company_id;
-        $purchases = Purchase::with([
-            'party' => function($q) { $q->select('id', 'name'); }, 
-            'items.grain' => function($q) { $q->select('id', 'name'); },
+        $query = Purchase::with([
+            'party', 
+            'broker',
+            'items.grain',
             'items.godown',
-            'lots'
+            'lots',
+            'charges',
+            'payments'
         ])
-            ->where('company_id', $companyId)
-            ->latest('date')
+            ->where('company_id', $companyId);
+
+        // Search by Purchase No, Party Name/Phone, Notes
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('purchase_no', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%")
+                    ->orWhereHas('party', function ($pq) use ($search) {
+                        $pq->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('broker', function ($bq) use ($search) {
+                        $bq->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        // Filter by Party (Supplier)
+        if ($request->filled('party_id')) {
+            $query->where('party_id', $request->party_id);
+        }
+
+        // Filter by Grain
+        if ($request->filled('grain_id')) {
+            $grainId = $request->grain_id;
+            $query->whereHas('items', function ($iq) use ($grainId) {
+                $iq->where('grain_id', $grainId);
+            });
+        }
+
+        // Filter by Date Range
+        if ($request->filled('from_date')) {
+            $query->whereDate('date', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('date', '<=', $request->to_date);
+        }
+
+        $allPurchases = $query->latest('date')
             ->latest('purchase_time')
             ->get();
-            
-        return view('business.purchases.index', compact('purchases'));
-    }
 
-    public function create()
-    {
-        $companyId = Auth::user()->company_id;
-        
-        $parties = User::where('company_id', $companyId)
-            ->where('role', 'party')
-            ->get();
-            
-        $brokers = User::where('company_id', $companyId)
-            ->where('role', 'broker')
-            ->get();
-            
-        $grains = Grain::where('company_id', $companyId)->get();
-        $godowns = Godown::where('company_id', $companyId)->get();
-        $partyTypes = \App\Models\Business\PartyType::whereNull('company_id')
-            ->orWhere('company_id', $companyId)
-            ->get();
-        
-        return view('business.purchases.create', compact('parties', 'brokers', 'grains', 'godowns', 'partyTypes'));
+        // Filter by payment status
+        if ($request->filled('payment_status')) {
+            $status = $request->payment_status;
+            $purchases = $allPurchases->filter(function ($p) use ($status) {
+                return $p->payment_status === $status;
+            })->values();
+        } else {
+            $purchases = $allPurchases;
+        }
+
+        // Summary KPI Statistics
+        $totalPurchasesAmount = $allPurchases->sum(function ($p) {
+            return (float) ($p->total_amount ?? 0);
+        });
+        $totalPaidAmount = $allPurchases->sum(function ($p) {
+            return $p->total_paid;
+        });
+        $totalDueAmount = $allPurchases->sum(function ($p) {
+            return $p->remaining_outstanding;
+        });
+
+        $stats = [
+            'total_amount' => $totalPurchasesAmount,
+            'total_paid' => $totalPaidAmount,
+            'total_due' => $totalDueAmount,
+            'total_count' => $allPurchases->count(),
+            'paid_count' => $allPurchases->where('payment_status', 'paid')->count(),
+            'partial_count' => $allPurchases->where('payment_status', 'partial')->count(),
+            'unpaid_count' => $allPurchases->where('payment_status', 'unpaid')->count(),
+        ];
+
+        $parties = User::where('company_id', $companyId)->where('role', 'party')->orderBy('name')->get();
+        $grains = Grain::where('company_id', $companyId)->orderBy('name')->get();
+
+        return view('business.purchases.index', compact('purchases', 'parties', 'grains', 'stats'));
     }
 
     public function print(Purchase $purchase)
     {
-        $purchase->load(['party', 'broker', 'items.grain', 'charges', 'payments']);
+        $purchase->load(['party', 'broker', 'items.grain', 'items.godown', 'charges', 'payments', 'lots']);
         $company = Auth::user()->company;
         return view('business.purchases.print', compact('purchase', 'company'));
+    }
+
+    public function paySupplier(Request $request, Purchase $purchase)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'mode' => 'required|string',
+            'date' => 'required|date',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $companyId = auth()->user()->company_id;
+        abort_if($purchase->company_id !== $companyId, 403);
+
+        $outstanding = $purchase->remaining_outstanding;
+        $amount = min((float)$request->amount, $outstanding);
+
+        DB::beginTransaction();
+        try {
+            $payment = Payment::create([
+                'company_id' => $companyId,
+                'party_id' => $purchase->party_id,
+                'direction' => 'out', // We pay out to supplier
+                'amount' => $amount,
+                'mode' => $request->mode,
+                'related_type' => Purchase::class,
+                'related_id' => $purchase->id,
+                'date' => $request->date,
+                'notes' => $request->notes,
+                'created_by' => auth()->id(),
+            ]);
+
+            // Ledger Entry
+            $lastEntry = LedgerEntry::where('company_id', $companyId)
+                ->where('party_id', $purchase->party_id)
+                ->latest('id')
+                ->first();
+
+            $party = $purchase->party;
+            $balance = $lastEntry ? $lastEntry->balance_after : ($party ? $party->opening_balance : 0);
+            $newBalance = $balance - $amount; // Decreases our payable
+
+            LedgerEntry::create([
+                'company_id' => $companyId,
+                'party_id' => $purchase->party_id,
+                'entry_type' => 'payment_out',
+                'reference_type' => Payment::class,
+                'reference_id' => $payment->id,
+                'debit' => $amount,
+                'credit' => 0,
+                'balance_after' => $newBalance,
+                'entry_date' => $request->date,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment of ₹' . number_format($amount, 2) . ' recorded successfully.'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function store(Request $request)

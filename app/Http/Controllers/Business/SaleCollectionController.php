@@ -28,8 +28,12 @@ class SaleCollectionController extends Controller
         // Ensure this sale belongs to the company
         abort_if($sale->company_id !== $company->id, 403);
 
-        $outstanding = $sale->remaining_outstanding;
-        $amount = min((float) $request->amount, $outstanding); // cap at outstanding
+        $initialPaid = (float) ($sale->payments()->exists() ? $sale->payments()->sum('amount') : $sale->amount_paid);
+        $collectedSoFar = (float) $sale->collections()->sum('amount');
+        $net = (float) ($sale->net_amount ?? $sale->total_amount ?? 0);
+        $outstanding = max(0, round($net - ($initialPaid + $collectedSoFar), 2));
+
+        $amount = min((float) $request->amount, $outstanding);
 
         SaleCollection::create([
             'company_id'   => $company->id,
@@ -42,20 +46,20 @@ class SaleCollectionController extends Controller
             'created_by'   => Auth::id(),
         ]);
 
-        // Update outstanding_amount on sale
-        $newCollected = $sale->collections()->sum('amount');
-        $net = (float) ($sale->net_amount ?? $sale->total_amount ?? 0);
+        $totalPaid = $initialPaid + $collectedSoFar + $amount;
+        $remainingDue = max(0, round($net - $totalPaid, 2));
+
         $sale->update([
-            'amount_paid'       => $newCollected,
-            'outstanding_amount' => max(0, $net - $newCollected),
+            'amount_paid'        => $totalPaid,
+            'outstanding_amount' => $remainingDue,
         ]);
 
         return response()->json([
-            'success'             => true,
-            'message'             => 'Payment of ₹' . number_format($amount, 2) . ' recorded successfully.',
-            'total_collected'     => $newCollected,
-            'remaining_outstanding' => max(0, $net - $newCollected),
-            'is_fully_collected'  => ($net - $newCollected) < 0.01,
+            'success'               => true,
+            'message'               => 'Payment of ₹' . number_format($amount, 2) . ' recorded successfully.',
+            'total_collected'       => $totalPaid,
+            'remaining_outstanding' => $remainingDue,
+            'is_fully_collected'    => $remainingDue < 0.01,
         ]);
     }
 

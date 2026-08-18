@@ -394,6 +394,7 @@
                         <option value="Quintal">Quintal</option>
                         <option value="Kg">Kg</option>
                         <option value="Ton">Ton</option>
+                        <option value="Bags">Bags</option>
                     </select>
                 </td>
                 <td class="p-2"><input type="number" step="0.01" name="items[${itemIndex}][rate]" class="form-control rate-input" onkeyup="calculateTotals()" required></td>
