@@ -12,6 +12,7 @@ use App\Models\Business\Godown;
 use App\Models\Business\Lot;
 use App\Models\Business\Grain;
 use App\Models\Business\LedgerEntry;
+use App\Models\Business\PartyType;
 use App\Models\Business\Payment;
 use App\Models\Business\InventoryLog;
 use App\Models\Core\User;
@@ -110,6 +111,26 @@ class PurchaseController extends Controller
         $grains = Grain::where('company_id', $companyId)->orderBy('name')->get();
 
         return view('business.purchases.index', compact('purchases', 'parties', 'grains', 'stats'));
+    }
+
+    public function create()
+    {
+        $companyId = Auth::user()->company_id;
+        $parties = User::where('company_id', $companyId)->where('role', 'party')->orderBy('name')->get();
+        $brokers = User::where('company_id', $companyId)->where('role', 'broker')->orderBy('name')->get();
+        $partyTypes = PartyType::whereNull('company_id')
+            ->orWhere('company_id', $companyId)
+            ->orderBy('name')
+            ->get();
+        $grains = Grain::where('company_id', $companyId)->orderBy('name')->get();
+        $godowns = Godown::where('company_id', $companyId)->orderBy('name')->get();
+
+        return view('business.purchases.create', compact('parties', 'brokers', 'partyTypes', 'grains', 'godowns'));
+    }
+
+    public function show(Purchase $purchase)
+    {
+        return redirect()->route('business.purchases.print', $purchase);
     }
 
     public function print(Purchase $purchase)
